@@ -1,0 +1,26 @@
+{
+  "name": "@acme/transport-relay",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@acme/shared-types": "workspace:*",
+    "@acme/transport": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "*"
+  }
+}
