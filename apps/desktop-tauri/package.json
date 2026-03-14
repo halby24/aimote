@@ -1,0 +1,31 @@
+{
+  "name": "@acme/desktop-tauri",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@acme/app-core": "workspace:*",
+    "@acme/host-api-tauri": "workspace:*",
+    "@acme/shared-types": "workspace:*",
+    "@acme/transport-acp-stdio": "workspace:*",
+    "@acme/ui-react-web": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "*",
+    "vite": "^6.2.1"
+  }
+}

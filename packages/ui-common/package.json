@@ -1,0 +1,25 @@
+{
+  "name": "@acme/ui-common",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@acme/app-core": "workspace:*",
+    "@acme/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  }
+}
