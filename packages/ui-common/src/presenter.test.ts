@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildChatScreenViewModel, type PresenterInput } from './presenter.js';
 import type { ChatStore } from '@acme/app-core';
+import type { ChatMessage } from '@acme/shared-types';
 import { makeSessionId, makeMessageId } from '@acme/shared-types';
 
 function makeEmptyStore(): ChatStore {
@@ -10,7 +11,7 @@ function makeEmptyStore(): ChatStore {
   };
 }
 
-function makeStoreWithSession(sessionId: string, messages: Parameters<typeof buildChatScreenViewModel>[0]['store']['sessions'] extends ReadonlyMap<infer _K, infer V> ? V['messages'] : never = []): ChatStore {
+function makeStoreWithSession(sessionId: string, messages: readonly ChatMessage[] = []): ChatStore {
   const sid = makeSessionId(sessionId);
   return {
     sessions: new Map([[sid, { id: sid, messages, createdAt: Date.now() }]]),
@@ -35,8 +36,9 @@ describe('buildChatScreenViewModel', () => {
 
     it('maps session messages to view models', () => {
       const mid = makeMessageId('m1');
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: mid, sessionId: makeSessionId('s1'), role: 'user', content: 'hi', status: 'completed', createdAt: 0, updatedAt: 0 },
+        { id: mid, sessionId: sid, role: 'user', content: 'hi', status: 'completed', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store }));
       expect(vm.messages).toHaveLength(1);
@@ -45,24 +47,27 @@ describe('buildChatScreenViewModel', () => {
     });
 
     it('sets isStreaming=true for streaming status', () => {
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: makeMessageId('m1'), sessionId: makeSessionId('s1'), role: 'assistant', content: 'partial', status: 'streaming', createdAt: 0, updatedAt: 0 },
+        { id: makeMessageId('m1'), sessionId: sid, role: 'assistant', content: 'partial', status: 'streaming', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store }));
       expect(vm.messages[0]!.isStreaming).toBe(true);
     });
 
     it('sets isError=true for error status', () => {
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: makeMessageId('m1'), sessionId: makeSessionId('s1'), role: 'user', content: 'hi', status: 'error', createdAt: 0, updatedAt: 0 },
+        { id: makeMessageId('m1'), sessionId: sid, role: 'user', content: 'hi', status: 'error', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store }));
       expect(vm.messages[0]!.isError).toBe(true);
     });
 
     it('sets isCancelled=true for cancelled status', () => {
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: makeMessageId('m1'), sessionId: makeSessionId('s1'), role: 'assistant', content: '', status: 'cancelled', createdAt: 0, updatedAt: 0 },
+        { id: makeMessageId('m1'), sessionId: sid, role: 'assistant', content: '', status: 'cancelled', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store }));
       expect(vm.messages[0]!.isCancelled).toBe(true);
@@ -101,16 +106,18 @@ describe('buildChatScreenViewModel', () => {
     });
 
     it('isDisabled=false when connected with no streaming', () => {
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: makeMessageId('m1'), sessionId: makeSessionId('s1'), role: 'user', content: 'hi', status: 'completed', createdAt: 0, updatedAt: 0 },
+        { id: makeMessageId('m1'), sessionId: sid, role: 'user', content: 'hi', status: 'completed', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store, connectionStatus: 'ready' }));
       expect(vm.input.isDisabled).toBe(false);
     });
 
     it('isDisabled=true when connected but has streaming message', () => {
+      const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
-        { id: makeMessageId('m1'), sessionId: makeSessionId('s1'), role: 'assistant', content: '', status: 'streaming', createdAt: 0, updatedAt: 0 },
+        { id: makeMessageId('m1'), sessionId: sid, role: 'assistant', content: '', status: 'streaming', createdAt: 0, updatedAt: 0 },
       ]);
       const vm = buildChatScreenViewModel(baseInput({ store, connectionStatus: 'ready' }));
       expect(vm.input.isDisabled).toBe(true);
