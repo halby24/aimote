@@ -70,9 +70,9 @@ export class RelayMockTransport implements AgentTransport {
     void sessionId;
   }
 
-  async approve(requestId: string, decision: 'allow' | 'deny'): Promise<void> {
+  async approve(requestId: string, optionId: string): Promise<void> {
     void requestId;
-    void decision;
+    void optionId;
   }
 
   subscribe(listener: (event: import('@acme/shared-types').AgentEvent) => void): () => void {

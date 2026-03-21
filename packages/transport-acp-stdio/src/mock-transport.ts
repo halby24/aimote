@@ -71,9 +71,9 @@ export class AcpStdioMockTransport implements AgentTransport {
     // Mock: no-op
   }
 
-  async approve(requestId: string, decision: 'allow' | 'deny'): Promise<void> {
+  async approve(requestId: string, optionId: string): Promise<void> {
     void requestId;
-    void decision;
+    void optionId;
     // Mock: no-op
   }
 
