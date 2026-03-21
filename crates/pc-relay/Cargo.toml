@@ -1,0 +1,14 @@
+[package]
+name = "pc-relay"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+aimote-backend = { path = "../aimote-backend" }
+tokio = { workspace = true }
+tokio-tungstenite = "0.24"
+clap = { version = "4", features = ["derive"] }
+futures-util = "0.3"
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

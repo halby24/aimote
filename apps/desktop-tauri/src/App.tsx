@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { ChatScreen } from '@acme/ui-react-web';
 import { ChatController } from '@acme/app-core';
-import { AcpStdioMockTransport } from '@acme/transport-acp-stdio';
+import { TauriIpcTransport } from '@acme/transport-tauri-ipc';
 
 export function App(): React.ReactElement {
   const controller = useMemo(
     () =>
       new ChatController({
-        transport: new AcpStdioMockTransport(),
+        transport: new TauriIpcTransport(),
       }),
     [],
   );

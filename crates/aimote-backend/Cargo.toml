@@ -1,0 +1,19 @@
+[package]
+name = "aimote-backend"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+agent-client-protocol = { version = "0.10", features = ["unstable"] }
+async-trait = "0.1"
+futures = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = "2"
+tokio = { workspace = true }
+tokio-util = { version = "0.7", features = ["compat"] }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
