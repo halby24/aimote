@@ -12,6 +12,7 @@ export interface UseChatResult {
   viewModel: ChatScreenViewModel;
   sendMessage: (text: string) => Promise<void>;
   cancel: () => Promise<void>;
+  approve: (requestId: string, optionId: string) => Promise<void>;
 }
 
 export function useChat({ controller }: UseChatOptions): UseChatResult {
@@ -56,5 +57,9 @@ export function useChat({ controller }: UseChatOptions): UseChatResult {
     await controllerRef.current.cancel();
   }, []);
 
-  return { viewModel, sendMessage, cancel };
+  const approve = useCallback(async (requestId: string, optionId: string) => {
+    await controllerRef.current.approve(requestId, optionId);
+  }, []);
+
+  return { viewModel, sendMessage, cancel, approve };
 }

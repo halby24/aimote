@@ -145,6 +145,207 @@ describe('ChatController', () => {
     });
   });
 
+  describe('ACP event handling', () => {
+    function setupWithSession() {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      return { transport, controller };
+    }
+
+    async function connectAndStartSession(transport: ReturnType<typeof createMockTransport>, controller: ChatController) {
+      await controller.connect();
+      transport.emit({ type: 'sessionStarted', sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId> });
+      return controller;
+    }
+
+    it('handles toolCallStarted', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'toolCallStarted',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        toolCall: { toolCallId: 'tc1', title: 'Read file', kind: 'read', status: 'pending' },
+      });
+      const session = controller.getActiveSession()!;
+      expect(session.toolCalls.get('tc1')).toBeDefined();
+      expect(session.toolCalls.get('tc1')!.title).toBe('Read file');
+    });
+
+    it('handles toolCallUpdated', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'toolCallStarted',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        toolCall: { toolCallId: 'tc1', title: 'Read file', kind: 'read', status: 'pending' },
+      });
+      transport.emit({
+        type: 'toolCallUpdated',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        toolCallId: 'tc1',
+        update: { toolCallId: 'tc1', status: 'completed' },
+      });
+      const session = controller.getActiveSession()!;
+      expect(session.toolCalls.get('tc1')!.status).toBe('completed');
+    });
+
+    it('handles plan', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      const entries = [{ content: 'Step 1', priority: 'high' as const, status: 'pending' as const }];
+      transport.emit({
+        type: 'plan',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        entries,
+      });
+      expect(controller.getActiveSession()!.plan).toEqual(entries);
+    });
+
+    it('handles thoughtDelta', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'thoughtDelta',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        delta: 'thinking...',
+      });
+      expect(controller.getActiveSession()!.thought).toBe('thinking...');
+    });
+
+    it('handles modeChanged', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'modeChanged',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        modeId: 'code',
+      });
+      expect(controller.getActiveSession()!.currentMode).toBe('code');
+    });
+
+    it('handles commandsChanged', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      const commands = [{ name: '/help', description: 'Show help' }];
+      transport.emit({
+        type: 'commandsChanged',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        commands,
+      });
+      expect(controller.getActiveSession()!.availableCommands).toEqual(commands);
+    });
+
+    it('handles usageUpdate', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      const usage = { size: 100000, used: 5000 };
+      transport.emit({
+        type: 'usageUpdate',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        usage,
+      });
+      expect(controller.getActiveSession()!.usage).toEqual(usage);
+    });
+
+    it('handles sessionInfoUpdate with title', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'sessionInfoUpdate',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        title: 'My Chat',
+      });
+      expect(controller.getActiveSession()!.title).toBe('My Chat');
+    });
+
+    it('ignores sessionInfoUpdate with undefined title', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'sessionInfoUpdate',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+      });
+      expect(controller.getActiveSession()!.title).toBeNull();
+    });
+
+    it('handles permissionRequested', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      const payload = { options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' as const }] };
+      transport.emit({
+        type: 'permissionRequested',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        requestId: 'req-1' as ReturnType<typeof import('@acme/shared-types').makeRequestId>,
+        payload,
+      });
+      const session = controller.getActiveSession()!;
+      expect(session.pendingPermission).not.toBeNull();
+      expect(session.pendingPermission!.requestId).toBe('req-1');
+    });
+
+    it('handles turnCompleted', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      // Set turn active first via sendMessage
+      transport.emit({
+        type: 'thoughtDelta',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        delta: 'thinking',
+      });
+      transport.emit({
+        type: 'turnCompleted',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        stopReason: 'end_turn',
+      });
+      const session = controller.getActiveSession()!;
+      expect(session.isTurnActive).toBe(false);
+      expect(session.thought).toBe(''); // reset on turn end
+    });
+
+    it('handles error with active session', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      transport.emit({ type: 'error', code: 'ERR_001', message: 'Something failed' });
+      const session = controller.getActiveSession()!;
+      const errorMsg = session.messages.find((m) => m.role === 'system');
+      expect(errorMsg).toBeDefined();
+      expect(errorMsg!.content).toContain('ERR_001');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('sendMessage sets turn active', () => {
+    it('sets isTurnActive to true when sending', async () => {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      transport.emit({ type: 'sessionStarted', sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId> });
+      await controller.sendMessage('hello');
+      const session = controller.getActiveSession()!;
+      expect(session.isTurnActive).toBe(true);
+    });
+  });
+
+  describe('approve', () => {
+    it('calls transport.approve and clears permission', async () => {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      transport.emit({ type: 'sessionStarted', sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId> });
+      const payload = { options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' as const }] };
+      transport.emit({
+        type: 'permissionRequested',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        requestId: 'req-1' as ReturnType<typeof import('@acme/shared-types').makeRequestId>,
+        payload,
+      });
+      await controller.approve('req-1', 'allow');
+      expect(transport.approve).toHaveBeenCalledWith('req-1', 'allow');
+      expect(controller.getActiveSession()!.pendingPermission).toBeNull();
+    });
+  });
+
   describe('subscribe', () => {
     it('notifies listener when store changes', async () => {
       const transport = createMockTransport();

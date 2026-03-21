@@ -146,6 +146,164 @@ describe('ChatStoreManager', () => {
     });
   });
 
+  describe('addToolCall', () => {
+    it('adds a tool call to the session', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.addToolCall('s1', { toolCallId: 'tc1', title: 'Read file', kind: 'read', status: 'pending' });
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.toolCalls.get('tc1')).toEqual({ toolCallId: 'tc1', title: 'Read file', kind: 'read', status: 'pending' });
+    });
+  });
+
+  describe('updateToolCall', () => {
+    it('merges update into existing tool call', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.addToolCall('s1', { toolCallId: 'tc1', title: 'Read file', kind: 'read', status: 'pending' });
+      manager.updateToolCall('s1', 'tc1', { toolCallId: 'tc1', status: 'completed' });
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.toolCalls.get('tc1')!.status).toBe('completed');
+      expect(session.toolCalls.get('tc1')!.title).toBe('Read file');
+    });
+
+    it('ignores update for non-existent tool call', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const listener = vi.fn();
+      manager.subscribe(listener);
+      manager.updateToolCall('s1', 'tc-nonexistent', { toolCallId: 'tc-nonexistent', status: 'completed' });
+      // updateSession is called but updater returns session unchanged, still notifies
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.toolCalls.size).toBe(0);
+    });
+  });
+
+  describe('setPlan', () => {
+    it('replaces plan entries', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const entries = [{ content: 'Step 1', priority: 'high' as const, status: 'pending' as const }];
+      manager.setPlan('s1', entries);
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.plan).toEqual(entries);
+    });
+  });
+
+  describe('appendThought', () => {
+    it('appends to thought string', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.appendThought('s1', 'thinking');
+      manager.appendThought('s1', ' more');
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.thought).toBe('thinking more');
+    });
+  });
+
+  describe('setMode', () => {
+    it('sets current mode', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.setMode('s1', 'code');
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.currentMode).toBe('code');
+    });
+  });
+
+  describe('setCommands', () => {
+    it('replaces available commands', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const commands = [{ name: '/help', description: 'Show help' }];
+      manager.setCommands('s1', commands);
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.availableCommands).toEqual(commands);
+    });
+  });
+
+  describe('setUsage', () => {
+    it('sets usage info', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const usage = { size: 100000, used: 5000 };
+      manager.setUsage('s1', usage);
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.usage).toEqual(usage);
+    });
+  });
+
+  describe('setSessionTitle', () => {
+    it('sets session title', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.setSessionTitle('s1', 'My Chat');
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.title).toBe('My Chat');
+    });
+  });
+
+  describe('setPermission / clearPermission', () => {
+    it('sets and clears pending permission', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const payload = { options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' as const }] };
+      manager.setPermission('s1', 'req-1', payload);
+      let session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.pendingPermission).toEqual({ requestId: 'req-1', payload });
+      manager.clearPermission('s1');
+      session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.pendingPermission).toBeNull();
+    });
+  });
+
+  describe('setTurnActive', () => {
+    it('sets isTurnActive and resets thought when deactivating', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.setTurnActive('s1', true);
+      manager.appendThought('s1', 'some thought');
+      let session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.isTurnActive).toBe(true);
+      expect(session.thought).toBe('some thought');
+      manager.setTurnActive('s1', false);
+      session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.isTurnActive).toBe(false);
+      expect(session.thought).toBe('');
+    });
+  });
+
+  describe('addErrorMessage', () => {
+    it('adds a system error message', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      manager.addErrorMessage('s1', 'ERR_001', 'Something failed');
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.messages).toHaveLength(1);
+      const msg = session.messages[0]!;
+      expect(msg.role).toBe('system');
+      expect(msg.content).toBe('[ERR_001] Something failed');
+      expect(msg.status).toBe('error');
+    });
+  });
+
+  describe('createSession defaults', () => {
+    it('initializes all new fields with defaults', () => {
+      const manager = new ChatStoreManager();
+      manager.createSession('s1');
+      const session = manager.getStore().sessions.get(makeSessionId('s1'))!;
+      expect(session.toolCalls.size).toBe(0);
+      expect(session.plan).toEqual([]);
+      expect(session.thought).toBe('');
+      expect(session.currentMode).toBeNull();
+      expect(session.availableCommands).toEqual([]);
+      expect(session.usage).toBeNull();
+      expect(session.title).toBeNull();
+      expect(session.pendingPermission).toBeNull();
+      expect(session.isTurnActive).toBe(false);
+    });
+  });
+
   describe('subscribe', () => {
     it('calls listener on each mutation', () => {
       const manager = new ChatStoreManager();

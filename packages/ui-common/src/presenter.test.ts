@@ -14,7 +14,20 @@ function makeEmptyStore(): ChatStore {
 function makeStoreWithSession(sessionId: string, messages: readonly ChatMessage[] = []): ChatStore {
   const sid = makeSessionId(sessionId);
   return {
-    sessions: new Map([[sid, { id: sid, messages, createdAt: Date.now() }]]),
+    sessions: new Map([[sid, {
+      id: sid,
+      messages,
+      createdAt: Date.now(),
+      toolCalls: new Map(),
+      plan: [],
+      thought: '',
+      currentMode: null,
+      availableCommands: [],
+      usage: null,
+      title: null,
+      pendingPermission: null,
+      isTurnActive: false,
+    }]]),
     activeSessionId: sid,
   };
 }

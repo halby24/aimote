@@ -51,7 +51,43 @@ export class ChatController {
           this.streamingMessageId = null;
           break;
         }
+        case 'toolCallStarted':
+          this.storeManager.addToolCall(event.sessionId, event.toolCall);
+          break;
+        case 'toolCallUpdated':
+          this.storeManager.updateToolCall(event.sessionId, event.toolCallId, event.update);
+          break;
+        case 'plan':
+          this.storeManager.setPlan(event.sessionId, event.entries);
+          break;
+        case 'thoughtDelta':
+          this.storeManager.appendThought(event.sessionId, event.delta);
+          break;
+        case 'modeChanged':
+          this.storeManager.setMode(event.sessionId, event.modeId);
+          break;
+        case 'commandsChanged':
+          this.storeManager.setCommands(event.sessionId, event.commands);
+          break;
+        case 'usageUpdate':
+          this.storeManager.setUsage(event.sessionId, event.usage);
+          break;
+        case 'sessionInfoUpdate':
+          if (event.title !== undefined && event.title !== null) {
+            this.storeManager.setSessionTitle(event.sessionId, event.title);
+          }
+          break;
+        case 'permissionRequested':
+          this.storeManager.setPermission(event.sessionId, event.requestId, event.payload);
+          break;
+        case 'turnCompleted':
+          this.storeManager.setTurnActive(event.sessionId, false);
+          this.streamingMessageId = null;
+          break;
         case 'error':
+          if (this.activeSessionId) {
+            this.storeManager.addErrorMessage(this.activeSessionId, event.code, event.message);
+          }
           console.error(`[transport error] ${event.code}: ${event.message}`);
           break;
         default:
@@ -77,6 +113,7 @@ export class ChatController {
     if (!this.activeSessionId) {
       throw new Error('No active session. Call startSession() first.');
     }
+    this.storeManager.setTurnActive(this.activeSessionId, true);
     const userMsgId = this.storeManager.addUserMessage(this.activeSessionId, text);
     try {
       await this.transport.sendUserMessage(this.activeSessionId, text);
@@ -84,6 +121,13 @@ export class ChatController {
     } catch (err) {
       this.storeManager.markMessageError(this.activeSessionId, userMsgId);
       throw err;
+    }
+  }
+
+  async approve(requestId: string, optionId: string): Promise<void> {
+    await this.transport.approve(requestId, optionId);
+    if (this.activeSessionId) {
+      this.storeManager.clearPermission(this.activeSessionId);
     }
   }
 

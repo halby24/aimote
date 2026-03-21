@@ -1,10 +1,35 @@
-import type { ChatMessage, SessionId, MessageId } from '@acme/shared-types';
-import { makeMessageId, makeSessionId } from '@acme/shared-types';
+import type {
+  ChatMessage,
+  SessionId,
+  MessageId,
+  RequestId,
+  ToolCallInfo,
+  ToolCallUpdateInfo,
+  PlanEntry,
+  CommandInfo,
+  UsageInfo,
+  PermissionPayload,
+} from '@acme/shared-types';
+import { makeMessageId, makeSessionId, makeRequestId } from '@acme/shared-types';
+
+export interface PendingPermission {
+  readonly requestId: RequestId;
+  readonly payload: PermissionPayload;
+}
 
 export interface ChatSession {
   readonly id: SessionId;
   readonly messages: readonly ChatMessage[];
   readonly createdAt: number;
+  readonly toolCalls: ReadonlyMap<string, ToolCallInfo>;
+  readonly plan: readonly PlanEntry[];
+  readonly thought: string;
+  readonly currentMode: string | null;
+  readonly availableCommands: readonly CommandInfo[];
+  readonly usage: UsageInfo | null;
+  readonly title: string | null;
+  readonly pendingPermission: PendingPermission | null;
+  readonly isTurnActive: boolean;
 }
 
 export interface ChatStore {
@@ -46,6 +71,15 @@ export class ChatStoreManager {
       id,
       messages: [],
       createdAt: Date.now(),
+      toolCalls: new Map(),
+      plan: [],
+      thought: '',
+      currentMode: null,
+      availableCommands: [],
+      usage: null,
+      title: null,
+      pendingPermission: null,
+      isTurnActive: false,
     };
     const newSessions = new Map(this.store.sessions);
     newSessions.set(id, session);
@@ -134,6 +168,97 @@ export class ChatStoreManager {
       activeSessionId: sessionId ? makeSessionId(sessionId) : null,
     };
     this.notify();
+  }
+
+  addToolCall(sessionId: string, toolCall: ToolCallInfo): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => {
+      const newToolCalls = new Map(session.toolCalls);
+      newToolCalls.set(toolCall.toolCallId, toolCall);
+      return { ...session, toolCalls: newToolCalls };
+    });
+  }
+
+  updateToolCall(sessionId: string, toolCallId: string, update: ToolCallUpdateInfo): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => {
+      const existing = session.toolCalls.get(toolCallId);
+      if (!existing) return session;
+      const newToolCalls = new Map(session.toolCalls);
+      newToolCalls.set(toolCallId, { ...existing, ...update });
+      return { ...session, toolCalls: newToolCalls };
+    });
+  }
+
+  setPlan(sessionId: string, entries: readonly PlanEntry[]): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, plan: entries }));
+  }
+
+  appendThought(sessionId: string, delta: string): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, thought: session.thought + delta }));
+  }
+
+  setMode(sessionId: string, modeId: string): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, currentMode: modeId }));
+  }
+
+  setCommands(sessionId: string, commands: readonly CommandInfo[]): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, availableCommands: commands }));
+  }
+
+  setUsage(sessionId: string, usage: UsageInfo): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, usage }));
+  }
+
+  setSessionTitle(sessionId: string, title: string): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, title }));
+  }
+
+  setPermission(sessionId: string, requestId: string, payload: PermissionPayload): void {
+    const sid = makeSessionId(sessionId);
+    const rid = makeRequestId(requestId);
+    this.updateSession(sid, (session) => ({
+      ...session,
+      pendingPermission: { requestId: rid, payload },
+    }));
+  }
+
+  clearPermission(sessionId: string): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({ ...session, pendingPermission: null }));
+  }
+
+  setTurnActive(sessionId: string, active: boolean): void {
+    const sid = makeSessionId(sessionId);
+    this.updateSession(sid, (session) => ({
+      ...session,
+      isTurnActive: active,
+      thought: active ? session.thought : '',
+    }));
+  }
+
+  addErrorMessage(sessionId: string, code: string, message: string): void {
+    const sid = makeSessionId(sessionId);
+    const messageId = makeMessageId(`error-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const errorMsg: ChatMessage = {
+      id: messageId,
+      sessionId: sid,
+      role: 'system',
+      content: `[${code}] ${message}`,
+      status: 'error',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    this.updateSession(sid, (session) => ({
+      ...session,
+      messages: [...session.messages, errorMsg],
+    }));
   }
 
   private updateSession(id: SessionId, updater: (s: ChatSession) => ChatSession): void {
