@@ -42,6 +42,23 @@ export interface UsageViewModel {
   readonly costDisplay: string | null;
 }
 
+export interface AgentConfigViewModel {
+  readonly name: string;
+  readonly command: string;
+  readonly args: string;
+  readonly env: string;
+  readonly isDefault: boolean;
+}
+
+export interface AgentSettingsViewModel {
+  readonly isOpen: boolean;
+  readonly agents: readonly AgentConfigViewModel[];
+  readonly defaultAgent: string;
+  readonly isLoading: boolean;
+  readonly isSaving: boolean;
+  readonly error: string | null;
+}
+
 export interface ChatScreenViewModel {
   readonly messages: readonly MessageViewModel[];
   readonly input: ChatInputViewModel;

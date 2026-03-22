@@ -7,4 +7,6 @@ export { PlanPanel } from './components/PlanPanel.js';
 export { PermissionDialog } from './components/PermissionDialog.js';
 export { ThoughtBubble } from './components/ThoughtBubble.js';
 export { UsageBar } from './components/UsageBar.js';
+export { AgentSettingsPanel } from './components/AgentSettingsPanel.js';
 export { useChat } from './hooks/useChat.js';
+export { useAgentSettings } from './hooks/useAgentSettings.js';

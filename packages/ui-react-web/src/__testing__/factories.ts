@@ -6,6 +6,8 @@ import type {
   PlanViewModel,
   PermissionViewModel,
   UsageViewModel,
+  AgentConfigViewModel,
+  AgentSettingsViewModel,
 } from '@acme/ui-common';
 import type { MessageId } from '@acme/shared-types';
 
@@ -79,6 +81,33 @@ export function createUsageViewModel(
     total: 10000,
     percentage: 50,
     costDisplay: null,
+    ...overrides,
+  };
+}
+
+export function createAgentConfigViewModel(
+  overrides: Partial<AgentConfigViewModel> = {},
+): AgentConfigViewModel {
+  return {
+    name: 'claude',
+    command: 'claude',
+    args: '',
+    env: '',
+    isDefault: true,
+    ...overrides,
+  };
+}
+
+export function createAgentSettingsViewModel(
+  overrides: Partial<AgentSettingsViewModel> = {},
+): AgentSettingsViewModel {
+  return {
+    isOpen: true,
+    agents: [createAgentConfigViewModel()],
+    defaultAgent: 'claude',
+    isLoading: false,
+    isSaving: false,
+    error: null,
     ...overrides,
   };
 }

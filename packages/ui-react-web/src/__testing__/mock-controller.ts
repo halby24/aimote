@@ -14,6 +14,8 @@ export interface MockChatController extends ChatController {
   getConfigValidation: ReturnType<typeof vi.fn>;
   getConnectError: ReturnType<typeof vi.fn>;
   getActiveSession: ReturnType<typeof vi.fn>;
+  getAgentsConfig: ReturnType<typeof vi.fn>;
+  saveAgentsConfig: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
 }
 
@@ -48,6 +50,11 @@ export function createMockController(
     getConfigValidation: vi.fn(() => null),
     getConnectError: vi.fn(() => null),
     getActiveSession: vi.fn(() => null),
+    getAgentsConfig: vi.fn(async () => ({
+      defaultAgent: 'claude',
+      agents: [{ name: 'claude', command: 'claude', args: [], env: {} }],
+    })),
+    saveAgentsConfig: vi.fn(async () => {}),
     subscribe: vi.fn((listener: (store: ChatStore) => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

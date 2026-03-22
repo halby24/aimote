@@ -9,6 +9,7 @@ interface Props {
   connectionStatus: string;
   isTurnActive: boolean;
   onCancel: () => void;
+  onSettingsClick: () => void;
   configError?: string | null;
 }
 
@@ -31,6 +32,7 @@ export function SessionHeader({
   connectionStatus,
   isTurnActive,
   onCancel,
+  onSettingsClick,
   configError,
 }: Props): React.ReactElement {
   const color = statusColorMap[connectionStatus] ?? '#94a3b8';
@@ -91,6 +93,21 @@ export function SessionHeader({
           />
           {label}
         </span>
+        <button
+          onClick={onSettingsClick}
+          aria-label="設定"
+          style={{
+            padding: '4px 8px',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+            backgroundColor: '#fff',
+            cursor: 'pointer',
+            fontSize: '16px',
+            lineHeight: 1,
+          }}
+        >
+          {'\u2699'}
+        </button>
         {isTurnActive && (
           <button
             onClick={onCancel}

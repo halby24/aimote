@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ChatController } from '@acme/app-core';
 import { useChat } from '../hooks/useChat.js';
 import { SessionHeader } from './SessionHeader.js';
@@ -8,6 +8,7 @@ import { MessageList } from './MessageList.js';
 import { PlanPanel } from './PlanPanel.js';
 import { PermissionDialog } from './PermissionDialog.js';
 import { MessageInput } from './MessageInput.js';
+import { AgentSettingsPanel } from './AgentSettingsPanel.js';
 
 interface Props {
   controller: ChatController;
@@ -15,6 +16,7 @@ interface Props {
 
 export function ChatScreen({ controller }: Props): React.ReactElement {
   const { viewModel, sendMessage, cancel, approve } = useChat({ controller });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -43,6 +45,7 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
         connectionStatus={viewModel.connectionStatus}
         isTurnActive={viewModel.isTurnActive}
         onCancel={() => void cancel()}
+        onSettingsClick={() => setSettingsOpen(true)}
         configError={viewModel.configError}
       />
       <ThoughtBubble thought={viewModel.thought} />
@@ -56,6 +59,11 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
         />
       )}
       <MessageInput input={viewModel.input} onSend={sendMessage} />
+      <AgentSettingsPanel
+        controller={controller}
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
       <style>{`
         @keyframes blink {
           0%, 100% { opacity: 1; }

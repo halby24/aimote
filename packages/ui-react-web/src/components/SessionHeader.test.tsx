@@ -11,6 +11,7 @@ describe('SessionHeader', () => {
     connectionStatus: 'idle',
     isTurnActive: false,
     onCancel: vi.fn(),
+    onSettingsClick: vi.fn(),
   };
 
   it('shows default title "AI チャット" when title is null', () => {
@@ -55,12 +56,16 @@ describe('SessionHeader', () => {
 
   it('shows cancel button when turn is active', () => {
     render(<SessionHeader {...defaultProps} isTurnActive={true} />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    // gear button + cancel button
+    expect(buttons).toHaveLength(2);
   });
 
   it('hides cancel button when turn is not active', () => {
     render(<SessionHeader {...defaultProps} isTurnActive={false} />);
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    // only gear button
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(1);
   });
 
   it('calls onCancel when cancel button is clicked', async () => {
@@ -68,7 +73,23 @@ describe('SessionHeader', () => {
     const onCancel = vi.fn();
     render(<SessionHeader {...defaultProps} isTurnActive={true} onCancel={onCancel} />);
 
-    await user.click(screen.getByRole('button'));
+    const buttons = screen.getAllByRole('button');
+    // cancel button is the second one (after gear)
+    await user.click(buttons[1]);
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('shows settings gear button', () => {
+    render(<SessionHeader {...defaultProps} />);
+    expect(screen.getByLabelText('設定')).toBeInTheDocument();
+  });
+
+  it('calls onSettingsClick when gear button is clicked', async () => {
+    const user = userEvent.setup();
+    const onSettingsClick = vi.fn();
+    render(<SessionHeader {...defaultProps} onSettingsClick={onSettingsClick} />);
+
+    await user.click(screen.getByLabelText('設定'));
+    expect(onSettingsClick).toHaveBeenCalledOnce();
   });
 });

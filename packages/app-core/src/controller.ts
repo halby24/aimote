@@ -1,5 +1,5 @@
 import type { AgentTransport } from '@acme/transport';
-import type { ConnectionStatus, ConfigValidationResult } from '@acme/shared-types';
+import type { ConnectionStatus, ConfigValidationResult, AgentsFile } from '@acme/shared-types';
 import { makeSessionId } from '@acme/shared-types';
 import { ChatStoreManager } from './store.js';
 
@@ -162,6 +162,18 @@ export class ChatController {
   getActiveSession() {
     if (!this.activeSessionId) return null;
     return this.storeManager.getStore().sessions.get(makeSessionId(this.activeSessionId)) ?? null;
+  }
+
+  async getAgentsConfig(): Promise<AgentsFile | null> {
+    if (!this.transport.getAgentsConfig) return null;
+    return this.transport.getAgentsConfig();
+  }
+
+  async saveAgentsConfig(config: AgentsFile): Promise<void> {
+    if (!this.transport.saveAgentsConfig) {
+      throw new Error('saveAgentsConfig not supported');
+    }
+    await this.transport.saveAgentsConfig(config);
   }
 
   subscribe(listener: (store: import('./store.js').ChatStore) => void): () => void {
