@@ -44,7 +44,7 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={input.isDisabled}
-        placeholder={input.isDisabled ? '接続中...' : 'メッセージを入力... (Enter で送信)'}
+        placeholder="メッセージを入力... (Enter で送信)"
         rows={2}
         style={{
           flex: 1,

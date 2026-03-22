@@ -41,4 +41,13 @@ describe('ChatScreen', () => {
     // PermissionDialog should not be visible - no permission-related text
     expect(screen.queryByText('許可')).not.toBeInTheDocument();
   });
+
+  it('shows ConnectionStatusPanel instead of chat UI when not connected', () => {
+    const controller = createMockController({ connectionStatus: 'connecting' });
+    render(<ChatScreen controller={controller} />);
+
+    expect(screen.getByText('接続中...')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('送信')).not.toBeInTheDocument();
+  });
 });

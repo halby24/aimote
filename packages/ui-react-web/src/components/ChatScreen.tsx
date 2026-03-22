@@ -8,6 +8,7 @@ import { MessageList } from './MessageList.js';
 import { PlanPanel } from './PlanPanel.js';
 import { PermissionDialog } from './PermissionDialog.js';
 import { MessageInput } from './MessageInput.js';
+import { ConnectionStatusPanel } from './ConnectionStatusPanel.js';
 import { AgentSettingsPanel } from './AgentSettingsPanel.js';
 
 interface Props {
@@ -50,15 +51,24 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
       />
       <ThoughtBubble thought={viewModel.thought} />
       <ToolCallList toolCalls={viewModel.toolCalls} />
-      <MessageList messages={viewModel.messages} />
-      <PlanPanel plan={viewModel.plan} />
-      {viewModel.pendingPermission && (
-        <PermissionDialog
-          permission={viewModel.pendingPermission}
-          onApprove={(reqId, optId) => void approve(reqId, optId)}
+      {viewModel.isConnected ? (
+        <>
+          <MessageList messages={viewModel.messages} />
+          <PlanPanel plan={viewModel.plan} />
+          {viewModel.pendingPermission && (
+            <PermissionDialog
+              permission={viewModel.pendingPermission}
+              onApprove={(reqId, optId) => void approve(reqId, optId)}
+            />
+          )}
+          <MessageInput input={viewModel.input} onSend={sendMessage} />
+        </>
+      ) : (
+        <ConnectionStatusPanel
+          connectionStatus={viewModel.connectionStatus}
+          configError={viewModel.configError}
         />
       )}
-      <MessageInput input={viewModel.input} onSend={sendMessage} />
       <AgentSettingsPanel
         controller={controller}
         isOpen={settingsOpen}

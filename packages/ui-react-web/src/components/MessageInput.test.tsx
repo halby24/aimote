@@ -20,26 +20,9 @@ describe('MessageInput', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows disabled placeholder when isDisabled', () => {
-    render(
-      <MessageInput
-        input={createInputViewModel({ isDisabled: true })}
-        onSend={vi.fn()}
-      />,
-    );
-    expect(screen.getByPlaceholderText('接続中...')).toBeInTheDocument();
-  });
-
-  it('shows enabled placeholder when not disabled', () => {
-    render(
-      <MessageInput
-        input={createInputViewModel({ isDisabled: false })}
-        onSend={vi.fn()}
-      />,
-    );
-    expect(
-      screen.getByPlaceholderText('メッセージを入力... (Enter で送信)'),
-    ).toBeInTheDocument();
+  it('shows default placeholder text', () => {
+    render(<MessageInput input={createInputViewModel()} onSend={vi.fn()} />);
+    expect(screen.getByPlaceholderText('メッセージを入力... (Enter で送信)')).toBeInTheDocument();
   });
 
   it('disables send button when text is empty', () => {

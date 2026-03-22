@@ -84,7 +84,7 @@ export function buildChatScreenViewModel(input: PresenterInput): ChatScreenViewM
 
   const chatInput: ChatInputViewModel = {
     value: inputValue,
-    isDisabled: !isConnected || hasStreamingMessage || hasPendingPermission,
+    isDisabled: hasStreamingMessage || hasPendingPermission,
     isSubmitting,
   };
 

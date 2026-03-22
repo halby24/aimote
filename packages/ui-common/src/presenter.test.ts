@@ -113,12 +113,7 @@ describe('buildChatScreenViewModel', () => {
       expect(vm.input.isSubmitting).toBe(true);
     });
 
-    it('isDisabled=true when not connected', () => {
-      const vm = buildChatScreenViewModel(baseInput({ connectionStatus: 'idle' }));
-      expect(vm.input.isDisabled).toBe(true);
-    });
-
-    it('isDisabled=false when connected with no streaming', () => {
+    it('isDisabled=false when no streaming and no pending permission', () => {
       const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
         { id: makeMessageId('m1'), sessionId: sid, role: 'user', content: 'hi', status: 'completed', createdAt: 0, updatedAt: 0 },
@@ -127,7 +122,7 @@ describe('buildChatScreenViewModel', () => {
       expect(vm.input.isDisabled).toBe(false);
     });
 
-    it('isDisabled=true when connected but has streaming message', () => {
+    it('isDisabled=true when has streaming message', () => {
       const sid = makeSessionId('s1');
       const store = makeStoreWithSession('s1', [
         { id: makeMessageId('m1'), sessionId: sid, role: 'assistant', content: '', status: 'streaming', createdAt: 0, updatedAt: 0 },
