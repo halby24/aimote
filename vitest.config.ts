@@ -26,6 +26,7 @@ export default defineConfig({
             'packages/ui-react-web/src/**/*.test.ts',
           ],
           environment: 'jsdom',
+          setupFiles: ['packages/ui-react-web/src/test-setup.ts'],
         },
       },
     ],
