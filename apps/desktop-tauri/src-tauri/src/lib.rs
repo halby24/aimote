@@ -33,7 +33,7 @@ pub fn run() {
                 None,
             );
 
-            app.manage(AppState { transport: handle });
+            app.manage(AppState { transport: handle, agents_path });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -46,6 +46,8 @@ pub fn run() {
             commands::list_sessions,
             commands::load_session,
             commands::validate_config,
+            commands::get_agents_config,
+            commands::save_agents_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

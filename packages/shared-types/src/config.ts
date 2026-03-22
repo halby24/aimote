@@ -7,3 +7,15 @@ export const defaultAppConfig: AppConfig = {
   theme: 'system',
   language: 'en',
 };
+
+export interface AgentConfig {
+  readonly name: string;
+  readonly command: string;
+  readonly args: string[];
+  readonly env?: Record<string, string>;
+}
+
+export interface AgentsFile {
+  readonly defaultAgent: string;
+  readonly agents: AgentConfig[];
+}

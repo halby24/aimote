@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AgentTransport, SessionListItem } from '@acme/transport';
-import type { AgentEvent, ConfigValidationResult } from '@acme/shared-types';
+import type { AgentEvent, AgentsFile, ConfigValidationResult } from '@acme/shared-types';
 
 export class TauriIpcTransport implements AgentTransport {
   private listeners = new Set<(event: AgentEvent) => void>();
@@ -64,5 +64,13 @@ export class TauriIpcTransport implements AgentTransport {
 
   async loadSession(sessionId: string): Promise<void> {
     await invoke('load_session', { sessionId });
+  }
+
+  async getAgentsConfig(): Promise<AgentsFile> {
+    return invoke<AgentsFile>('get_agents_config');
+  }
+
+  async saveAgentsConfig(config: AgentsFile): Promise<void> {
+    await invoke('save_agents_config', { config });
   }
 }

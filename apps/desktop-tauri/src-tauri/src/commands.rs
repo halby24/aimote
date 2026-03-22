@@ -1,6 +1,7 @@
 use tauri::State;
 
 use aimote_backend::acp_transport::SessionListItem;
+use aimote_backend::agent_config_file::{load_agents_file, save_agents_file, AgentsFile};
 use aimote_backend::config_validator::ConfigValidationResult;
 
 use crate::state::AppState;
@@ -98,4 +99,34 @@ pub async fn validate_config(
         .validate_config()
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_agents_config(state: State<'_, AppState>) -> Result<AgentsFile, String> {
+    load_agents_file(&state.agents_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_agents_config(
+    state: State<'_, AppState>,
+    config: AgentsFile,
+) -> Result<(), String> {
+    // Validate: defaultAgent must exist in agents list
+    if !config.agents.iter().any(|a| a.name == config.default_agent) {
+        return Err(format!(
+            "defaultAgent \"{}\" not found in agents list",
+            config.default_agent
+        ));
+    }
+
+    save_agents_file(&state.agents_path, &config).map_err(|e| e.to_string())?;
+
+    let (agent_name, registry) = config.into_registry();
+    state
+        .transport
+        .update_config(agent_name, registry)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

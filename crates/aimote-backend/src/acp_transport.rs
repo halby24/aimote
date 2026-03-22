@@ -299,6 +299,11 @@ impl AcpTransport {
         Ok(())
     }
 
+    pub fn update_config(&mut self, agent_name: String, registry: AgentRegistry) {
+        self.agent_name = agent_name;
+        self.registry = registry;
+    }
+
     pub fn validate_config(&self) -> ConfigValidationResult {
         let config = match self.registry.get(&self.agent_name) {
             Some(c) => c,

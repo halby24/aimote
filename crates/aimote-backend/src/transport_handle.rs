@@ -47,6 +47,11 @@ enum TransportCommand {
     ValidateConfig {
         reply: oneshot::Sender<ConfigValidationResult>,
     },
+    UpdateConfig {
+        agent_name: String,
+        registry: AgentRegistry,
+        reply: oneshot::Sender<()>,
+    },
 }
 
 impl TransportHandle {
@@ -153,6 +158,20 @@ impl TransportHandle {
         let _ = self.tx.send(TransportCommand::ValidateConfig { reply });
         rx.await.map_err(|_| TransportError::NotConnected)
     }
+
+    pub async fn update_config(
+        &self,
+        agent_name: String,
+        registry: AgentRegistry,
+    ) -> Result<(), TransportError> {
+        let (reply, rx) = oneshot::channel();
+        let _ = self.tx.send(TransportCommand::UpdateConfig {
+            agent_name,
+            registry,
+            reply,
+        });
+        rx.await.map_err(|_| TransportError::NotConnected)
+    }
 }
 
 async fn run_actor(
@@ -196,6 +215,14 @@ async fn run_actor(
             }
             TransportCommand::ValidateConfig { reply } => {
                 let _ = reply.send(transport.validate_config());
+            }
+            TransportCommand::UpdateConfig {
+                agent_name,
+                registry,
+                reply,
+            } => {
+                transport.update_config(agent_name, registry);
+                let _ = reply.send(());
             }
         }
     }
