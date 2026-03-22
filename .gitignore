@@ -7,3 +7,5 @@ dist/
 .env.local
 **/src-tauri/target/
 /target/
+test-results/
+playwright-report/
