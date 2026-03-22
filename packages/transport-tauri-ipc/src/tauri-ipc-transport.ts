@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AgentTransport, SessionListItem } from '@acme/transport';
-import type { AgentEvent } from '@acme/shared-types';
+import type { AgentEvent, ConfigValidationResult } from '@acme/shared-types';
 
 export class TauriIpcTransport implements AgentTransport {
   private listeners = new Set<(event: AgentEvent) => void>();
@@ -51,6 +51,10 @@ export class TauriIpcTransport implements AgentTransport {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  async validateConfig(): Promise<ConfigValidationResult> {
+    return invoke<ConfigValidationResult>('validate_config');
   }
 
   async listSessions(): Promise<{ sessions: SessionListItem[] }> {

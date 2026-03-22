@@ -101,6 +101,7 @@ export function createChatScreenViewModel(
     title: null,
     pendingPermission: null,
     isTurnActive: false,
+    configError: null,
     ...overrides,
   };
 }

@@ -1,4 +1,4 @@
-import type { AgentEvent } from '@acme/shared-types';
+import type { AgentEvent, ConfigValidationResult } from '@acme/shared-types';
 
 export interface SessionListItem {
   sessionId: string;
@@ -17,6 +17,7 @@ export interface AgentTransport {
   subscribe(listener: (event: AgentEvent) => void): () => void;
 
   // Optional — capability dependent
+  validateConfig?(): Promise<ConfigValidationResult>;
   listSessions?(): Promise<{ sessions: SessionListItem[] }>;
   loadSession?(sessionId: string): Promise<void>;
 }

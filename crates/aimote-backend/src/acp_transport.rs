@@ -15,6 +15,7 @@ use tracing::{info, error};
 
 use crate::agent_registry::AgentRegistry;
 use crate::acp_client_handler::AcpClientHandler;
+use crate::config_validator::{self, ConfigValidationResult, ConfigValidationError};
 use crate::event_sink::EventSink;
 use crate::permission_resolver::PermissionResolver;
 use crate::process_manager::spawn_agent;
@@ -296,6 +297,25 @@ impl AcpTransport {
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub fn validate_config(&self) -> ConfigValidationResult {
+        let config = match self.registry.get(&self.agent_name) {
+            Some(c) => c,
+            None => {
+                return ConfigValidationResult {
+                    valid: false,
+                    errors: vec![ConfigValidationError {
+                        code: "AGENT_NOT_FOUND".into(),
+                        message: format!(
+                            "Agent \"{}\" not found in registry",
+                            self.agent_name
+                        ),
+                    }],
+                };
+            }
+        };
+        config_validator::validate_agent_config(config)
     }
 
     fn require_connection(&self) -> Result<&ConnectionState, TransportError> {

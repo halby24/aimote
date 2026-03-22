@@ -57,4 +57,5 @@ export interface ChatScreenViewModel {
   readonly title: string | null;
   readonly pendingPermission: PermissionViewModel | null;
   readonly isTurnActive: boolean;
+  readonly configError: string | null;
 }

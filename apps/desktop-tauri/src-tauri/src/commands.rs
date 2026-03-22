@@ -1,6 +1,7 @@
 use tauri::State;
 
 use aimote_backend::acp_transport::SessionListItem;
+use aimote_backend::config_validator::ConfigValidationResult;
 
 use crate::state::AppState;
 
@@ -84,6 +85,17 @@ pub async fn load_session(
     state
         .transport
         .load_session(&session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn validate_config(
+    state: State<'_, AppState>,
+) -> Result<ConfigValidationResult, String> {
+    state
+        .transport
+        .validate_config()
         .await
         .map_err(|e| e.to_string())
 }

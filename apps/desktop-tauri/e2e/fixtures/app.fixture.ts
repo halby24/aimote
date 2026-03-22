@@ -9,6 +9,7 @@ export const test = base.extend<AppFixtures>({
     await page.addInitScript(() => {
       window.__tauriMock = {
         invokeHandlers: new Map<string, (...args: unknown[]) => unknown>([
+          ['validate_config', () => ({ valid: true, errors: [] })],
           ['connect', () => undefined],
           ['disconnect', () => undefined],
           ['start_session', () => 'test-session-1'],

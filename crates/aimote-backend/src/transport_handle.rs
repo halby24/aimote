@@ -3,6 +3,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::acp_transport::{AcpTransport, SessionListItem, TransportError};
 use crate::agent_registry::AgentRegistry;
+use crate::config_validator::ConfigValidationResult;
 use crate::event_sink::EventSink;
 
 /// A Send + Sync handle to AcpTransport running on a dedicated LocalSet thread.
@@ -42,6 +43,9 @@ enum TransportCommand {
     LoadSession {
         session_id: String,
         reply: oneshot::Sender<Result<(), TransportError>>,
+    },
+    ValidateConfig {
+        reply: oneshot::Sender<ConfigValidationResult>,
     },
 }
 
@@ -143,6 +147,12 @@ impl TransportHandle {
         });
         rx.await.map_err(|_| TransportError::NotConnected)?
     }
+
+    pub async fn validate_config(&self) -> Result<ConfigValidationResult, TransportError> {
+        let (reply, rx) = oneshot::channel();
+        let _ = self.tx.send(TransportCommand::ValidateConfig { reply });
+        rx.await.map_err(|_| TransportError::NotConnected)
+    }
 }
 
 async fn run_actor(
@@ -183,6 +193,9 @@ async fn run_actor(
             }
             TransportCommand::LoadSession { session_id, reply } => {
                 let _ = reply.send(transport.load_session(&session_id).await);
+            }
+            TransportCommand::ValidateConfig { reply } => {
+                let _ = reply.send(transport.validate_config());
             }
         }
     }

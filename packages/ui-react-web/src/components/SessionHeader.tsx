@@ -9,6 +9,7 @@ interface Props {
   connectionStatus: string;
   isTurnActive: boolean;
   onCancel: () => void;
+  configError?: string | null;
 }
 
 const statusColorMap: Record<string, string> = {
@@ -30,9 +31,12 @@ export function SessionHeader({
   connectionStatus,
   isTurnActive,
   onCancel,
+  configError,
 }: Props): React.ReactElement {
   const color = statusColorMap[connectionStatus] ?? '#94a3b8';
-  const label = statusLabelMap[connectionStatus] ?? '\u672a\u63a5\u7d9a';
+  const label = connectionStatus === 'error' && configError
+    ? configError
+    : (statusLabelMap[connectionStatus] ?? '\u672a\u63a5\u7d9a');
 
   return (
     <header

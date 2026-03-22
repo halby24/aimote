@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ChatController } from '@acme/app-core';
 import type { ChatScreenViewModel } from '@acme/ui-common';
 import { buildChatScreenViewModel } from '@acme/ui-common';
-import type { ConnectionStatus } from '@acme/shared-types';
+import type { ConnectionStatus, ConfigValidationResult } from '@acme/shared-types';
 
 export interface UseChatOptions {
   controller: ChatController;
@@ -22,14 +22,18 @@ export function useChat({ controller }: UseChatOptions): UseChatResult {
   );
   const [inputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [configValidation, setConfigValidation] = useState<ConfigValidationResult | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const controllerRef = useRef(controller);
   controllerRef.current = controller;
 
   useEffect(() => {
     const unsub = controller.subscribe((s) => setStore(s));
-    // Poll connection status
+    // Poll connection status, config validation, and connect error
     const timer = setInterval(() => {
       setConnectionStatus(controllerRef.current.getConnectionStatus());
+      setConfigValidation(controllerRef.current.getConfigValidation());
+      setConnectError(controllerRef.current.getConnectError());
     }, 300);
     return () => {
       unsub();
@@ -42,6 +46,8 @@ export function useChat({ controller }: UseChatOptions): UseChatResult {
     connectionStatus,
     inputValue,
     isSubmitting,
+    configValidation,
+    connectError,
   });
 
   const sendMessage = useCallback(async (text: string) => {

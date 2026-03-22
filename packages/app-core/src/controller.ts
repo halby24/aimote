@@ -1,5 +1,5 @@
 import type { AgentTransport } from '@acme/transport';
-import type { ConnectionStatus } from '@acme/shared-types';
+import type { ConnectionStatus, ConfigValidationResult } from '@acme/shared-types';
 import { makeSessionId } from '@acme/shared-types';
 import { ChatStoreManager } from './store.js';
 
@@ -11,6 +11,8 @@ export class ChatController {
   private readonly transport: AgentTransport;
   readonly storeManager: ChatStoreManager;
   private connectionStatus: ConnectionStatus = 'idle';
+  private configValidation: ConfigValidationResult | null = null;
+  private connectError: string | null = null;
   private unsubscribe: (() => void) | null = null;
   private activeSessionId: string | null = null;
   private streamingMessageId: string | null = null;
@@ -24,7 +26,22 @@ export class ChatController {
     return this.connectionStatus;
   }
 
+  getConfigValidation(): ConfigValidationResult | null {
+    return this.configValidation;
+  }
+
+  getConnectError(): string | null {
+    return this.connectError;
+  }
+
   async connect(): Promise<void> {
+    const validation = await this.runValidateConfig();
+    this.configValidation = validation;
+    if (!validation.valid) {
+      this.connectionStatus = 'error';
+      return;
+    }
+
     this.unsubscribe = this.transport.subscribe((event) => {
       switch (event.type) {
         case 'connectionStatus':
@@ -94,7 +111,12 @@ export class ChatController {
           break;
       }
     });
-    await this.transport.connect();
+    try {
+      await this.transport.connect();
+    } catch (err) {
+      this.connectError = err instanceof Error ? err.message : String(err);
+      this.connectionStatus = 'error';
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -144,5 +166,12 @@ export class ChatController {
 
   subscribe(listener: (store: import('./store.js').ChatStore) => void): () => void {
     return this.storeManager.subscribe(listener);
+  }
+
+  private async runValidateConfig(): Promise<ConfigValidationResult> {
+    if (this.transport.validateConfig) {
+      return this.transport.validateConfig();
+    }
+    return { valid: true, errors: [] };
   }
 }

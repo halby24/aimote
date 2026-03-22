@@ -346,6 +346,50 @@ describe('ChatController', () => {
     });
   });
 
+  describe('config validation', () => {
+    it('treats transport without validateConfig as valid', async () => {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      const validation = controller.getConfigValidation();
+      expect(validation).toEqual({ valid: true, errors: [] });
+    });
+
+    it('sets connectionStatus to error and returns early when validation fails', async () => {
+      const transport = createMockTransport();
+      transport.validateConfig = vi.fn().mockResolvedValue({
+        valid: false,
+        errors: [{ code: 'COMMAND_NOT_FOUND', message: 'cmd not found' }],
+      });
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      expect(controller.getConnectionStatus()).toBe('error');
+      expect(controller.getConfigValidation()!.valid).toBe(false);
+      // transport.connect should not have been called
+      expect(transport.connect).not.toHaveBeenCalled();
+    });
+
+    it('proceeds to connect when validation passes', async () => {
+      const transport = createMockTransport();
+      transport.validateConfig = vi.fn().mockResolvedValue({
+        valid: true,
+        errors: [],
+      });
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      expect(transport.connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('catches transport.connect() throw and sets connectError', async () => {
+      const transport = createMockTransport();
+      vi.mocked(transport.connect).mockRejectedValueOnce(new Error('Spawn error: program not found'));
+      const controller = new ChatController({ transport });
+      await controller.connect(); // should NOT throw
+      expect(controller.getConnectionStatus()).toBe('error');
+      expect(controller.getConnectError()).toBe('Spawn error: program not found');
+    });
+  });
+
   describe('subscribe', () => {
     it('notifies listener when store changes', async () => {
       const transport = createMockTransport();

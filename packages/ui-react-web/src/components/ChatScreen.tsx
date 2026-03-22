@@ -19,6 +19,7 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
   useEffect(() => {
     void (async () => {
       await controller.connect();
+      if (controller.getConnectionStatus() === 'error') return;
       await controller.startSession();
     })();
     return () => {
@@ -42,6 +43,7 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
         connectionStatus={viewModel.connectionStatus}
         isTurnActive={viewModel.isTurnActive}
         onCancel={() => void cancel()}
+        configError={viewModel.configError}
       />
       <ThoughtBubble thought={viewModel.thought} />
       <ToolCallList toolCalls={viewModel.toolCalls} />

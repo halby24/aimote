@@ -1,5 +1,5 @@
 import type { ChatStore, ChatSession } from '@acme/app-core';
-import type { ConnectionStatus, ChatMessage, ToolCallInfo } from '@acme/shared-types';
+import type { ConnectionStatus, ChatMessage, ToolCallInfo, ConfigValidationResult } from '@acme/shared-types';
 import type {
   ChatScreenViewModel,
   MessageViewModel,
@@ -64,10 +64,12 @@ export interface PresenterInput {
   connectionStatus: ConnectionStatus;
   inputValue: string;
   isSubmitting: boolean;
+  configValidation?: ConfigValidationResult | null;
+  connectError?: string | null;
 }
 
 export function buildChatScreenViewModel(input: PresenterInput): ChatScreenViewModel {
-  const { store, connectionStatus, inputValue, isSubmitting } = input;
+  const { store, connectionStatus, inputValue, isSubmitting, configValidation, connectError } = input;
   const activeSession = store.activeSessionId
     ? store.sessions.get(store.activeSessionId)
     : null;
@@ -105,5 +107,9 @@ export function buildChatScreenViewModel(input: PresenterInput): ChatScreenViewM
     title: activeSession?.title ?? null,
     pendingPermission: toPermissionViewModel(activeSession ?? null),
     isTurnActive: activeSession?.isTurnActive ?? false,
+    configError:
+      configValidation && !configValidation.valid
+        ? configValidation.errors.map((e) => e.message).join('; ')
+        : connectError ?? null,
   };
 }

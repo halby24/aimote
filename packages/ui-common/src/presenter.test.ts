@@ -137,6 +137,52 @@ describe('buildChatScreenViewModel', () => {
     });
   });
 
+  describe('configError', () => {
+    it('is null when configValidation is not provided', () => {
+      const vm = buildChatScreenViewModel(baseInput());
+      expect(vm.configError).toBeNull();
+    });
+
+    it('is null when configValidation is valid', () => {
+      const vm = buildChatScreenViewModel(baseInput({
+        configValidation: { valid: true, errors: [] },
+      }));
+      expect(vm.configError).toBeNull();
+    });
+
+    it('joins error messages when configValidation is invalid', () => {
+      const vm = buildChatScreenViewModel(baseInput({
+        configValidation: {
+          valid: false,
+          errors: [
+            { code: 'COMMAND_NOT_FOUND', message: 'cmd not found' },
+            { code: 'AGENT_NOT_FOUND', message: 'agent missing' },
+          ],
+        },
+      }));
+      expect(vm.configError).toBe('cmd not found; agent missing');
+    });
+
+    it('uses connectError when configValidation is valid', () => {
+      const vm = buildChatScreenViewModel(baseInput({
+        configValidation: { valid: true, errors: [] },
+        connectError: 'Spawn error: program not found',
+      }));
+      expect(vm.configError).toBe('Spawn error: program not found');
+    });
+
+    it('prefers configValidation error over connectError', () => {
+      const vm = buildChatScreenViewModel(baseInput({
+        configValidation: {
+          valid: false,
+          errors: [{ code: 'COMMAND_NOT_FOUND', message: 'cmd not found' }],
+        },
+        connectError: 'some other error',
+      }));
+      expect(vm.configError).toBe('cmd not found');
+    });
+  });
+
   describe('sessionId', () => {
     it('is null when no active session', () => {
       const vm = buildChatScreenViewModel(baseInput());

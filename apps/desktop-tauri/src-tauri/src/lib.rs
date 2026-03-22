@@ -45,6 +45,7 @@ pub fn run() {
             commands::approve_permission,
             commands::list_sessions,
             commands::load_session,
+            commands::validate_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
