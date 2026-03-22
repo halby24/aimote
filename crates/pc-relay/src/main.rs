@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::Parser;
@@ -7,6 +8,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{info, error, warn};
 
+use aimote_backend::agent_config_file::{load_agents_file, AgentsFile};
 use aimote_backend::agent_registry::{AgentConfig, AgentRegistry};
 use aimote_backend::event_sink::EventSink;
 use aimote_backend::types::AgentEvent;
@@ -20,16 +22,20 @@ struct Args {
     port: u16,
 
     /// Agent name to use
-    #[arg(short, long, default_value = "claude")]
-    agent: String,
+    #[arg(short, long)]
+    agent: Option<String>,
 
     /// Agent command
-    #[arg(long, default_value = "claude")]
-    command: String,
+    #[arg(long)]
+    command: Option<String>,
 
     /// Agent arguments (comma-separated)
-    #[arg(long, default_value = "--chat")]
-    args: String,
+    #[arg(long)]
+    args: Option<String>,
+
+    /// Path to agents.json config file
+    #[arg(short, long)]
+    config: Option<PathBuf>,
 }
 
 /// EventSink that sends events over a WebSocket connection.
@@ -58,13 +64,51 @@ async fn main() {
     let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
     info!("pc-relay listening on ws://{}", addr);
 
-    let agent_config = AgentConfig {
-        name: args.agent.clone(),
-        command: args.command,
-        args: args.args.split(',').map(|s| s.trim().to_string()).collect(),
-        env: None,
+    // Resolve agent config: CLI args > config file > defaults
+    let (agent_name, agent_config) = if args.command.is_some() {
+        // CLI args explicitly provided
+        let name = args.agent.unwrap_or_else(|| "claude".into());
+        let config = AgentConfig {
+            name: name.clone(),
+            command: args.command.unwrap(),
+            args: args
+                .args
+                .unwrap_or_else(|| "--chat".into())
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
+            env: None,
+        };
+        (name, config)
+    } else if let Some(config_path) = &args.config {
+        // Load from config file
+        let agents_file = load_agents_file(config_path).unwrap_or_else(|e| {
+            eprintln!("Failed to load config: {e}, using defaults");
+            AgentsFile::default()
+        });
+        let default_agent = args
+            .agent
+            .unwrap_or(agents_file.default_agent.clone());
+        let config = agents_file
+            .agents
+            .into_iter()
+            .find(|a| a.name == default_agent)
+            .unwrap_or_else(|| {
+                eprintln!("Agent '{default_agent}' not found in config, using first entry or default");
+                AgentsFile::default().agents.into_iter().next().unwrap()
+            });
+        (default_agent, config)
+    } else {
+        // Defaults
+        let name = args.agent.unwrap_or_else(|| "claude".into());
+        let config = AgentConfig {
+            name: name.clone(),
+            command: "claude".into(),
+            args: vec!["--chat".into()],
+            env: None,
+        };
+        (name, config)
     };
-    let agent_name = args.agent;
 
     while let Ok((stream, peer)) = listener.accept().await {
         info!("New connection from {}", peer);

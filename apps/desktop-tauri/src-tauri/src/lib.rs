@@ -4,7 +4,7 @@ mod tauri_event_sink;
 
 use std::sync::Arc;
 
-use aimote_backend::agent_registry::{AgentConfig, AgentRegistry};
+use aimote_backend::agent_config_file::{load_agents_file, AgentsFile};
 use aimote_backend::transport_handle::TransportHandle;
 use tauri::Manager;
 
@@ -18,16 +18,16 @@ pub fn run() {
         .setup(|app| {
             let sink = Arc::new(TauriEventSink::new(app.handle().clone()));
 
-            let mut registry = AgentRegistry::new();
-            registry.register(AgentConfig {
-                name: "claude".into(),
-                command: "claude".into(),
-                args: vec!["--chat".into()],
-                env: None,
+            let config_dir = app.path().app_config_dir().expect("failed to get app config dir");
+            let agents_path = config_dir.join("agents.json");
+            let agents_file = load_agents_file(&agents_path).unwrap_or_else(|e| {
+                eprintln!("Failed to load agents.json: {e}, using defaults");
+                AgentsFile::default()
             });
+            let (default_agent, registry) = agents_file.into_registry();
 
             let handle = TransportHandle::spawn(
-                "claude".to_string(),
+                default_agent,
                 registry,
                 sink,
                 None,
