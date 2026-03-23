@@ -125,17 +125,22 @@ export function useAgentSettings({
     try {
       const config = viewModelsToAgentsFile(agents, defaultAgent);
       await controller.saveAgentsConfig(config);
-      onClose();
-      // Reconnect sequence
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+      setIsSaving(false);
+      return;
+    }
+    setIsSaving(false);
+    onClose();
+    // Reconnect sequence (outside isSaving guard so panel is never stuck)
+    try {
       await controller.disconnect();
       await controller.connect();
       if (controller.getConnectionStatus() !== 'error') {
         await controller.startSession();
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsSaving(false);
+    } catch {
+      // Reconnect errors are shown via connectionStatus, not the settings panel
     }
   }, [agents, defaultAgent, controller, onClose]);
 

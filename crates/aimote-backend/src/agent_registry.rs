@@ -10,7 +10,7 @@ pub struct AgentConfig {
     pub env: Option<HashMap<String, String>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AgentRegistry {
     agents: HashMap<String, AgentConfig>,
 }

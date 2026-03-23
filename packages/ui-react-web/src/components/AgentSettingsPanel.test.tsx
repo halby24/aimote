@@ -84,4 +84,95 @@ describe('AgentSettingsPanel', () => {
       expect(screen.getByText('load failed')).toBeInTheDocument();
     });
   });
+
+  it('shows error and keeps panel open when saveAgentsConfig fails', async () => {
+    const user = userEvent.setup();
+    const controller = createMockController();
+    const onClose = vi.fn();
+    controller.saveAgentsConfig.mockRejectedValueOnce(new Error('save failed'));
+    render(<AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />);
+    await waitForLoaded();
+
+    await user.click(screen.getByText('保存'));
+
+    await waitFor(() => {
+      expect(screen.getByText('save failed')).toBeInTheDocument();
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(controller.disconnect).not.toHaveBeenCalled();
+    const saveButton = screen.getByText('保存');
+    expect(saveButton).not.toBeDisabled();
+  });
+
+  it('does not get stuck in saving state when disconnect fails after save', async () => {
+    const user = userEvent.setup();
+    const controller = createMockController();
+    const onClose = vi.fn();
+    controller.disconnect.mockRejectedValueOnce(new Error('disconnect failed'));
+    const { rerender } = render(
+      <AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />,
+    );
+    await waitForLoaded();
+
+    await user.click(screen.getByText('保存'));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    // Reopen the panel
+    rerender(<AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />);
+    await waitForLoaded();
+
+    const saveButton = screen.getByText('保存');
+    expect(saveButton).not.toBeDisabled();
+  });
+
+  it('does not get stuck in saving state when connect fails after save (SPAWN_ERROR)', async () => {
+    const user = userEvent.setup();
+    const controller = createMockController();
+    const onClose = vi.fn();
+    controller.connect.mockRejectedValueOnce(new Error('SPAWN_ERROR'));
+    const { rerender } = render(
+      <AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />,
+    );
+    await waitForLoaded();
+
+    await user.click(screen.getByText('保存'));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    // Reopen the panel
+    rerender(<AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />);
+    await waitForLoaded();
+
+    const saveButton = screen.getByText('保存');
+    expect(saveButton).not.toBeDisabled();
+  });
+
+  it('does not get stuck in saving state when startSession fails after save', async () => {
+    const user = userEvent.setup();
+    const controller = createMockController();
+    const onClose = vi.fn();
+    controller.startSession.mockRejectedValueOnce(new Error('session failed'));
+    const { rerender } = render(
+      <AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />,
+    );
+    await waitForLoaded();
+
+    await user.click(screen.getByText('保存'));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    // Reopen the panel
+    rerender(<AgentSettingsPanel controller={controller} isOpen={true} onClose={onClose} />);
+    await waitForLoaded();
+
+    const saveButton = screen.getByText('保存');
+    expect(saveButton).not.toBeDisabled();
+  });
 });

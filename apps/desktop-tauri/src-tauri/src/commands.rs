@@ -94,11 +94,7 @@ pub async fn load_session(
 pub async fn validate_config(
     state: State<'_, AppState>,
 ) -> Result<ConfigValidationResult, String> {
-    state
-        .transport
-        .validate_config()
-        .await
-        .map_err(|e| e.to_string())
+    Ok(state.transport.validate_config())
 }
 
 #[tauri::command]
@@ -122,11 +118,7 @@ pub async fn save_agents_config(
     save_agents_file(&state.agents_path, &config).map_err(|e| e.to_string())?;
 
     let (agent_name, registry) = config.into_registry();
-    state
-        .transport
-        .update_config(agent_name, registry)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.transport.update_config(agent_name, registry);
 
     Ok(())
 }

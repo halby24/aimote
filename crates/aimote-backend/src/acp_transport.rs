@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::cell::Cell;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 use tokio::sync::Mutex;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
@@ -13,13 +16,12 @@ use agent_client_protocol::{
 };
 use tracing::{info, error};
 
-use crate::agent_registry::AgentRegistry;
 use crate::acp_client_handler::AcpClientHandler;
-use crate::config_validator::{self, ConfigValidationResult, ConfigValidationError};
 use crate::event_sink::EventSink;
 use crate::permission_resolver::PermissionResolver;
 use crate::process_manager::spawn_agent;
 use crate::session_update_mapper::map_stop_reason;
+use crate::transport_handle::SharedConfig;
 use crate::types::*;
 
 /// Serializable session list item returned to the frontend.
@@ -35,50 +37,50 @@ pub struct SessionListItem {
 }
 
 struct ConnectionState {
-    connection: ClientSideConnection,
+    connection: Rc<ClientSideConnection>,
     _io_handle: tokio::task::JoinHandle<()>,
     agent_capabilities: AgentCapabilities,
 }
 
 pub struct AcpTransport {
     sink: Arc<dyn EventSink>,
-    registry: AgentRegistry,
-    agent_name: String,
+    config: Arc<RwLock<SharedConfig>>,
     cwd: Option<String>,
-    connection: Option<ConnectionState>,
+    connection: Rc<RefCell<Option<ConnectionState>>>,
     permission_resolver: Arc<Mutex<PermissionResolver>>,
+    turn_active: Rc<Cell<bool>>,
 }
 
 impl AcpTransport {
     pub fn new(
-        agent_name: String,
-        registry: AgentRegistry,
+        config: Arc<RwLock<SharedConfig>>,
         sink: Arc<dyn EventSink>,
         cwd: Option<String>,
     ) -> Self {
         Self {
             sink,
-            registry,
-            agent_name,
+            config,
             cwd,
-            connection: None,
+            connection: Rc::new(RefCell::new(None)),
             permission_resolver: Arc::new(Mutex::new(PermissionResolver::new())),
+            turn_active: Rc::new(Cell::new(false)),
         }
     }
 
-    pub async fn connect(&mut self) -> Result<(), TransportError> {
-        let config = self
-            .registry
-            .get(&self.agent_name)
-            .ok_or_else(|| {
-                let msg = format!("Agent \"{}\" not found in registry", self.agent_name);
-                self.sink.emit(AgentEvent::Error {
-                    code: "AGENT_NOT_FOUND".into(),
-                    message: msg.clone(),
-                });
-                TransportError::AgentNotFound(msg)
-            })?
-            .clone();
+    pub async fn connect(&self) -> Result<(), TransportError> {
+        let config = {
+            let cfg = self.config.read().unwrap();
+            cfg.registry.get(&cfg.agent_name)
+                .ok_or_else(|| {
+                    let msg = format!("Agent \"{}\" not found in registry", cfg.agent_name);
+                    self.sink.emit(AgentEvent::Error {
+                        code: "AGENT_NOT_FOUND".into(),
+                        message: msg.clone(),
+                    });
+                    TransportError::AgentNotFound(msg)
+                })?
+                .clone()
+        };
 
         self.sink.emit(AgentEvent::ConnectionStatus {
             status: ConnectionStatus::Connecting,
@@ -161,8 +163,8 @@ impl AcpTransport {
 
         let agent_capabilities = init_response.agent_capabilities;
 
-        self.connection = Some(ConnectionState {
-            connection: conn,
+        *self.connection.borrow_mut() = Some(ConnectionState {
+            connection: Rc::new(conn),
             _io_handle: io_handle,
             agent_capabilities,
         });
@@ -174,12 +176,14 @@ impl AcpTransport {
         Ok(())
     }
 
-    pub async fn disconnect(&mut self) {
+    pub async fn disconnect(&self) {
         self.permission_resolver.lock().await.cancel_all();
 
-        if let Some(state) = self.connection.take() {
+        if let Some(state) = self.connection.borrow_mut().take() {
             state._io_handle.abort();
         }
+
+        self.turn_active.set(false);
 
         self.sink.emit(AgentEvent::ConnectionStatus {
             status: ConnectionStatus::Disconnected,
@@ -190,13 +194,12 @@ impl AcpTransport {
         &self,
         workspace: Option<String>,
     ) -> Result<String, TransportError> {
-        let state = self.require_connection()?;
+        let conn = self.require_connection_rc()?;
         let cwd = workspace
             .or_else(|| self.cwd.clone())
             .unwrap_or_else(|| ".".to_string());
 
-        let response = state
-            .connection
+        let response = conn
             .new_session(NewSessionRequest::new(cwd))
             .await
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
@@ -210,34 +213,59 @@ impl AcpTransport {
         Ok(session_id)
     }
 
-    pub async fn send_user_message(
+    /// Spawn a prompt task that runs in the background on the LocalSet.
+    /// Returns immediately after dispatching; the result is emitted via EventSink.
+    pub fn spawn_prompt(
         &self,
-        session_id: &str,
-        text: &str,
+        session_id: String,
+        text: String,
     ) -> Result<(), TransportError> {
-        let state = self.require_connection()?;
+        let conn = self.require_connection_rc()?;
 
-        let response = state
-            .connection
-            .prompt(PromptRequest::new(
-                session_id.to_string(),
-                vec![ContentBlock::Text(TextContent::new(text.to_string()))],
-            ))
-            .await
-            .map_err(|e| TransportError::MessageError(e.to_string()))?;
+        if self.turn_active.get() {
+            return Err(TransportError::TurnInProgress);
+        }
+        self.turn_active.set(true);
 
-        self.sink.emit(AgentEvent::TurnCompleted {
-            session_id: session_id.to_string(),
-            stop_reason: map_stop_reason(&response.stop_reason),
+        let sink = self.sink.clone();
+        let turn_active = self.turn_active.clone();
+
+        tokio::task::spawn_local(async move {
+            let result = conn
+                .prompt(PromptRequest::new(
+                    session_id.clone(),
+                    vec![ContentBlock::Text(TextContent::new(text))],
+                ))
+                .await;
+
+            turn_active.set(false);
+
+            match result {
+                Ok(response) => {
+                    sink.emit(AgentEvent::TurnCompleted {
+                        session_id,
+                        stop_reason: map_stop_reason(&response.stop_reason),
+                    });
+                }
+                Err(e) => {
+                    sink.emit(AgentEvent::Error {
+                        code: "MESSAGE_ERROR".into(),
+                        message: e.to_string(),
+                    });
+                    sink.emit(AgentEvent::TurnCompleted {
+                        session_id,
+                        stop_reason: StopReason::Cancelled,
+                    });
+                }
+            }
         });
 
         Ok(())
     }
 
     pub async fn cancel(&self, session_id: &str) -> Result<(), TransportError> {
-        let state = self.require_connection()?;
-        state
-            .connection
+        let conn = self.require_connection_rc()?;
+        conn
             .cancel(CancelNotification::new(session_id.to_string()))
             .await
             .map_err(|e| TransportError::CancelError(e.to_string()))?;
@@ -253,16 +281,15 @@ impl AcpTransport {
     }
 
     pub async fn list_sessions(&self) -> Result<Vec<SessionListItem>, TransportError> {
-        let state = self.require_connection()?;
+        let (conn, capabilities) = self.require_connection_with_capabilities()?;
 
-        if state.agent_capabilities.session_capabilities.list.is_none() {
+        if capabilities.session_capabilities.list.is_none() {
             return Err(TransportError::UnsupportedCapability(
                 "Agent does not support session listing".into(),
             ));
         }
 
-        let response = state
-            .connection
+        let response = conn
             .list_sessions(ListSessionsRequest::new())
             .await
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
@@ -282,16 +309,15 @@ impl AcpTransport {
     }
 
     pub async fn load_session(&self, session_id: &str) -> Result<(), TransportError> {
-        let state = self.require_connection()?;
+        let (conn, capabilities) = self.require_connection_with_capabilities()?;
 
-        if !state.agent_capabilities.load_session {
+        if !capabilities.load_session {
             return Err(TransportError::UnsupportedCapability(
                 "Agent does not support session loading".into(),
             ));
         }
 
-        state
-            .connection
+        conn
             .load_session(LoadSessionRequest::new(session_id.to_string(), "."))
             .await
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
@@ -299,33 +325,23 @@ impl AcpTransport {
         Ok(())
     }
 
-    pub fn update_config(&mut self, agent_name: String, registry: AgentRegistry) {
-        self.agent_name = agent_name;
-        self.registry = registry;
-    }
-
-    pub fn validate_config(&self) -> ConfigValidationResult {
-        let config = match self.registry.get(&self.agent_name) {
-            Some(c) => c,
-            None => {
-                return ConfigValidationResult {
-                    valid: false,
-                    errors: vec![ConfigValidationError {
-                        code: "AGENT_NOT_FOUND".into(),
-                        message: format!(
-                            "Agent \"{}\" not found in registry",
-                            self.agent_name
-                        ),
-                    }],
-                };
-            }
-        };
-        config_validator::validate_agent_config(config)
-    }
-
-    fn require_connection(&self) -> Result<&ConnectionState, TransportError> {
-        self.connection
+    /// Get a clone of the Rc<ClientSideConnection>, dropping the RefCell borrow immediately.
+    fn require_connection_rc(&self) -> Result<Rc<ClientSideConnection>, TransportError> {
+        let borrow = self.connection.borrow();
+        borrow
             .as_ref()
+            .map(|s| s.connection.clone())
+            .ok_or(TransportError::NotConnected)
+    }
+
+    /// Get a clone of connection and capabilities, dropping the RefCell borrow immediately.
+    fn require_connection_with_capabilities(
+        &self,
+    ) -> Result<(Rc<ClientSideConnection>, AgentCapabilities), TransportError> {
+        let borrow = self.connection.borrow();
+        borrow
+            .as_ref()
+            .map(|s| (s.connection.clone(), s.agent_capabilities.clone()))
             .ok_or(TransportError::NotConnected)
     }
 }
@@ -348,4 +364,6 @@ pub enum TransportError {
     CancelError(String),
     #[error("Unsupported capability: {0}")]
     UnsupportedCapability(String),
+    #[error("Turn already in progress")]
+    TurnInProgress,
 }

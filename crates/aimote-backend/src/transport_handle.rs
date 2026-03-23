@@ -1,15 +1,23 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::acp_transport::{AcpTransport, SessionListItem, TransportError};
 use crate::agent_registry::AgentRegistry;
-use crate::config_validator::ConfigValidationResult;
+use crate::config_validator::{self, ConfigValidationResult, ConfigValidationError};
 use crate::event_sink::EventSink;
+
+/// Shared agent configuration accessible from both the handle (any thread)
+/// and the AcpTransport actor (LocalSet thread).
+pub struct SharedConfig {
+    pub agent_name: String,
+    pub registry: AgentRegistry,
+}
 
 /// A Send + Sync handle to AcpTransport running on a dedicated LocalSet thread.
 #[derive(Clone)]
 pub struct TransportHandle {
     tx: mpsc::UnboundedSender<TransportCommand>,
+    config: Arc<RwLock<SharedConfig>>,
 }
 
 enum TransportCommand {
@@ -44,14 +52,6 @@ enum TransportCommand {
         session_id: String,
         reply: oneshot::Sender<Result<(), TransportError>>,
     },
-    ValidateConfig {
-        reply: oneshot::Sender<ConfigValidationResult>,
-    },
-    UpdateConfig {
-        agent_name: String,
-        registry: AgentRegistry,
-        reply: oneshot::Sender<()>,
-    },
 }
 
 impl TransportHandle {
@@ -62,6 +62,11 @@ impl TransportHandle {
         sink: Arc<dyn EventSink>,
         cwd: Option<String>,
     ) -> Self {
+        let config = Arc::new(RwLock::new(SharedConfig {
+            agent_name,
+            registry,
+        }));
+        let config_clone = config.clone();
         let (tx, rx) = mpsc::unbounded_channel();
 
         std::thread::spawn(move || {
@@ -72,12 +77,12 @@ impl TransportHandle {
 
             let local = tokio::task::LocalSet::new();
             local.block_on(&rt, async move {
-                let mut transport = AcpTransport::new(agent_name, registry, sink, cwd);
-                run_actor(&mut transport, rx).await;
+                let transport = AcpTransport::new(config_clone, sink, cwd);
+                run_actor(&transport, rx).await;
             });
         });
 
-        Self { tx }
+        Self { tx, config }
     }
 
     pub async fn connect(&self) -> Result<(), TransportError> {
@@ -153,29 +158,37 @@ impl TransportHandle {
         rx.await.map_err(|_| TransportError::NotConnected)?
     }
 
-    pub async fn validate_config(&self) -> Result<ConfigValidationResult, TransportError> {
-        let (reply, rx) = oneshot::channel();
-        let _ = self.tx.send(TransportCommand::ValidateConfig { reply });
-        rx.await.map_err(|_| TransportError::NotConnected)
+    /// Read config directly without going through the actor loop.
+    pub fn validate_config(&self) -> ConfigValidationResult {
+        let cfg = self.config.read().unwrap();
+        let config = match cfg.registry.get(&cfg.agent_name) {
+            Some(c) => c,
+            None => {
+                return ConfigValidationResult {
+                    valid: false,
+                    errors: vec![ConfigValidationError {
+                        code: "AGENT_NOT_FOUND".into(),
+                        message: format!(
+                            "Agent \"{}\" not found in registry",
+                            cfg.agent_name
+                        ),
+                    }],
+                };
+            }
+        };
+        config_validator::validate_agent_config(config)
     }
 
-    pub async fn update_config(
-        &self,
-        agent_name: String,
-        registry: AgentRegistry,
-    ) -> Result<(), TransportError> {
-        let (reply, rx) = oneshot::channel();
-        let _ = self.tx.send(TransportCommand::UpdateConfig {
-            agent_name,
-            registry,
-            reply,
-        });
-        rx.await.map_err(|_| TransportError::NotConnected)
+    /// Update config directly without going through the actor loop.
+    pub fn update_config(&self, agent_name: String, registry: AgentRegistry) {
+        let mut cfg = self.config.write().unwrap();
+        cfg.agent_name = agent_name;
+        cfg.registry = registry;
     }
 }
 
 async fn run_actor(
-    transport: &mut AcpTransport,
+    transport: &AcpTransport,
     mut rx: mpsc::UnboundedReceiver<TransportCommand>,
 ) {
     while let Some(cmd) = rx.recv().await {
@@ -195,7 +208,7 @@ async fn run_actor(
                 text,
                 reply,
             } => {
-                let _ = reply.send(transport.send_user_message(&session_id, &text).await);
+                let _ = reply.send(transport.spawn_prompt(session_id, text));
             }
             TransportCommand::Cancel { session_id, reply } => {
                 let _ = reply.send(transport.cancel(&session_id).await);
@@ -212,17 +225,6 @@ async fn run_actor(
             }
             TransportCommand::LoadSession { session_id, reply } => {
                 let _ = reply.send(transport.load_session(&session_id).await);
-            }
-            TransportCommand::ValidateConfig { reply } => {
-                let _ = reply.send(transport.validate_config());
-            }
-            TransportCommand::UpdateConfig {
-                agent_name,
-                registry,
-                reply,
-            } => {
-                transport.update_config(agent_name, registry);
-                let _ = reply.send(());
             }
         }
     }
