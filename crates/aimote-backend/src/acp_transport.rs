@@ -1,8 +1,7 @@
-use std::cell::Cell;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
 
@@ -36,19 +35,52 @@ pub struct SessionListItem {
     pub updated_at: Option<String>,
 }
 
-struct ConnectionState {
-    connection: Rc<ClientSideConnection>,
-    _io_handle: tokio::task::JoinHandle<()>,
-    agent_capabilities: AgentCapabilities,
+// ---------------------------------------------------------------------------
+// State machine types
+// ---------------------------------------------------------------------------
+
+struct ConnectionInner {
+    conn: Rc<ClientSideConnection>,
+    io_handle: tokio::task::JoinHandle<()>,
+    capabilities: AgentCapabilities,
 }
+
+struct SessionInner {
+    session_id: String,
+    turn_active: bool,
+}
+
+enum TransportState {
+    Disconnected,
+    Connected {
+        inner: ConnectionInner,
+        session: Option<SessionInner>,
+    },
+}
+
+/// Notifications sent from background tasks (e.g. process monitor) to the
+/// actor loop so that state mutations always happen on the LocalSet thread.
+pub enum InternalNotification {
+    /// The agent process exited. `generation` identifies which connection
+    /// spawned it, so stale notifications from old connections are ignored.
+    ProcessDied { generation: u64 },
+}
+
+// ---------------------------------------------------------------------------
+// AcpTransport
+// ---------------------------------------------------------------------------
 
 pub struct AcpTransport {
     sink: Arc<dyn EventSink>,
     config: Arc<RwLock<SharedConfig>>,
     cwd: Option<String>,
-    connection: Rc<RefCell<Option<ConnectionState>>>,
+    state: Rc<RefCell<TransportState>>,
     permission_resolver: Arc<Mutex<PermissionResolver>>,
-    turn_active: Rc<Cell<bool>>,
+    internal_tx: mpsc::UnboundedSender<InternalNotification>,
+    /// Monotonically increasing counter to distinguish connections.
+    /// Each `connect()` increments this; process monitors capture the value
+    /// so stale `ProcessDied` notifications from old connections are discarded.
+    generation: Cell<u64>,
 }
 
 impl AcpTransport {
@@ -56,18 +88,28 @@ impl AcpTransport {
         config: Arc<RwLock<SharedConfig>>,
         sink: Arc<dyn EventSink>,
         cwd: Option<String>,
-    ) -> Self {
-        Self {
+    ) -> (Self, mpsc::UnboundedReceiver<InternalNotification>) {
+        let (internal_tx, internal_rx) = mpsc::unbounded_channel();
+        let transport = Self {
             sink,
             config,
             cwd,
-            connection: Rc::new(RefCell::new(None)),
+            state: Rc::new(RefCell::new(TransportState::Disconnected)),
             permission_resolver: Arc::new(Mutex::new(PermissionResolver::new())),
-            turn_active: Rc::new(Cell::new(false)),
-        }
+            internal_tx,
+            generation: Cell::new(0),
+        };
+        (transport, internal_rx)
     }
 
+    // -- lifecycle -----------------------------------------------------------
+
     pub async fn connect(&self) -> Result<(), TransportError> {
+        // Disconnect first if already connected (idempotent reconnect)
+        if matches!(&*self.state.borrow(), TransportState::Connected { .. }) {
+            self.disconnect().await;
+        }
+
         let config = {
             let cfg = self.config.read().unwrap();
             cfg.registry.get(&cfg.agent_name)
@@ -118,8 +160,13 @@ impl AcpTransport {
             }
         });
 
-        // Monitor process exit
+        // Bump generation so stale ProcessDied from old connections are ignored
+        let gen = self.generation.get() + 1;
+        self.generation.set(gen);
+
+        // Monitor process exit — notify the actor loop via channel
         let sink_clone = self.sink.clone();
+        let internal_tx = self.internal_tx.clone();
         tokio::spawn(async move {
             let status = sr.child.wait().await;
             match status {
@@ -133,9 +180,7 @@ impl AcpTransport {
                     });
                 }
             }
-            sink_clone.emit(AgentEvent::ConnectionStatus {
-                status: ConnectionStatus::Disconnected,
-            });
+            let _ = internal_tx.send(InternalNotification::ProcessDied { generation: gen });
         });
 
         let init_request = InitializeRequest::new(1.into())
@@ -161,13 +206,16 @@ impl AcpTransport {
             TransportError::InitError(e.to_string())
         })?;
 
-        let agent_capabilities = init_response.agent_capabilities;
+        let capabilities = init_response.agent_capabilities;
 
-        *self.connection.borrow_mut() = Some(ConnectionState {
-            connection: Rc::new(conn),
-            _io_handle: io_handle,
-            agent_capabilities,
-        });
+        *self.state.borrow_mut() = TransportState::Connected {
+            inner: ConnectionInner {
+                conn: Rc::new(conn),
+                io_handle,
+                capabilities,
+            },
+            session: None,
+        };
 
         self.sink.emit(AgentEvent::ConnectionStatus {
             status: ConnectionStatus::Ready,
@@ -179,16 +227,33 @@ impl AcpTransport {
     pub async fn disconnect(&self) {
         self.permission_resolver.lock().await.cancel_all();
 
-        if let Some(state) = self.connection.borrow_mut().take() {
-            state._io_handle.abort();
+        let old = std::mem::replace(&mut *self.state.borrow_mut(), TransportState::Disconnected);
+        if let TransportState::Connected { inner, .. } = old {
+            inner.io_handle.abort();
         }
-
-        self.turn_active.set(false);
 
         self.sink.emit(AgentEvent::ConnectionStatus {
             status: ConnectionStatus::Disconnected,
         });
     }
+
+    /// Called by the actor loop when the agent process exits.
+    /// Only acts if `generation` matches the current connection; stale
+    /// notifications from old connections are silently discarded.
+    pub fn handle_process_died(&self, generation: u64) {
+        if self.generation.get() != generation {
+            return; // Stale notification from a previous connection
+        }
+        let was_connected = matches!(&*self.state.borrow(), TransportState::Connected { .. });
+        *self.state.borrow_mut() = TransportState::Disconnected;
+        if was_connected {
+            self.sink.emit(AgentEvent::ConnectionStatus {
+                status: ConnectionStatus::Disconnected,
+            });
+        }
+    }
+
+    // -- session -------------------------------------------------------------
 
     pub async fn start_session(
         &self,
@@ -206,12 +271,25 @@ impl AcpTransport {
 
         let session_id = response.session_id.to_string();
 
+        // Register session in state
+        {
+            let mut state = self.state.borrow_mut();
+            if let TransportState::Connected { session, .. } = &mut *state {
+                *session = Some(SessionInner {
+                    session_id: session_id.clone(),
+                    turn_active: false,
+                });
+            }
+        }
+
         self.sink.emit(AgentEvent::SessionStarted {
             session_id: session_id.clone(),
         });
 
         Ok(session_id)
     }
+
+    // -- prompt / turn -------------------------------------------------------
 
     /// Spawn a prompt task that runs in the background on the LocalSet.
     /// Returns immediately after dispatching; the result is emitted via EventSink.
@@ -220,15 +298,41 @@ impl AcpTransport {
         session_id: String,
         text: String,
     ) -> Result<(), TransportError> {
+        // Validate state: must be connected with a matching session and no active turn
+        {
+            let state = self.state.borrow();
+            match &*state {
+                TransportState::Connected { session: Some(s), .. } => {
+                    if s.session_id != session_id {
+                        return Err(TransportError::SessionError(
+                            format!("Session {} is not the active session", session_id),
+                        ));
+                    }
+                    if s.turn_active {
+                        return Err(TransportError::TurnInProgress);
+                    }
+                }
+                TransportState::Connected { session: None, .. } => {
+                    return Err(TransportError::NoActiveSession);
+                }
+                TransportState::Disconnected => {
+                    return Err(TransportError::NotConnected);
+                }
+            }
+        }
+
         let conn = self.require_connection_rc()?;
 
-        if self.turn_active.get() {
-            return Err(TransportError::TurnInProgress);
+        // Mark turn active
+        {
+            let mut state = self.state.borrow_mut();
+            if let TransportState::Connected { session: Some(s), .. } = &mut *state {
+                s.turn_active = true;
+            }
         }
-        self.turn_active.set(true);
 
         let sink = self.sink.clone();
-        let turn_active = self.turn_active.clone();
+        let state_rc = self.state.clone();
 
         tokio::task::spawn_local(async move {
             let result = conn
@@ -238,7 +342,13 @@ impl AcpTransport {
                 ))
                 .await;
 
-            turn_active.set(false);
+            // Clear turn_active (only if still connected)
+            {
+                let mut state = state_rc.borrow_mut();
+                if let TransportState::Connected { session: Some(s), .. } = &mut *state {
+                    s.turn_active = false;
+                }
+            }
 
             match result {
                 Ok(response) => {
@@ -280,8 +390,10 @@ impl AcpTransport {
         Ok(())
     }
 
+    // -- session management --------------------------------------------------
+
     pub async fn list_sessions(&self) -> Result<Vec<SessionListItem>, TransportError> {
-        let (conn, capabilities) = self.require_connection_with_capabilities()?;
+        let (conn, capabilities) = self.require_connected()?;
 
         if capabilities.session_capabilities.list.is_none() {
             return Err(TransportError::UnsupportedCapability(
@@ -309,7 +421,7 @@ impl AcpTransport {
     }
 
     pub async fn load_session(&self, session_id: &str) -> Result<(), TransportError> {
-        let (conn, capabilities) = self.require_connection_with_capabilities()?;
+        let (conn, capabilities) = self.require_connected()?;
 
         if !capabilities.load_session {
             return Err(TransportError::UnsupportedCapability(
@@ -322,27 +434,36 @@ impl AcpTransport {
             .await
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
 
+        // Register loaded session in state
+        {
+            let mut state = self.state.borrow_mut();
+            if let TransportState::Connected { session, .. } = &mut *state {
+                *session = Some(SessionInner {
+                    session_id: session_id.to_string(),
+                    turn_active: false,
+                });
+            }
+        }
+
         Ok(())
     }
 
-    /// Get a clone of the Rc<ClientSideConnection>, dropping the RefCell borrow immediately.
-    fn require_connection_rc(&self) -> Result<Rc<ClientSideConnection>, TransportError> {
-        let borrow = self.connection.borrow();
-        borrow
-            .as_ref()
-            .map(|s| s.connection.clone())
-            .ok_or(TransportError::NotConnected)
+    // -- helpers -------------------------------------------------------------
+
+    /// Get connection + capabilities, or error if disconnected.
+    fn require_connected(&self) -> Result<(Rc<ClientSideConnection>, AgentCapabilities), TransportError> {
+        let borrow = self.state.borrow();
+        match &*borrow {
+            TransportState::Connected { inner, .. } => {
+                Ok((inner.conn.clone(), inner.capabilities.clone()))
+            }
+            TransportState::Disconnected => Err(TransportError::NotConnected),
+        }
     }
 
-    /// Get a clone of connection and capabilities, dropping the RefCell borrow immediately.
-    fn require_connection_with_capabilities(
-        &self,
-    ) -> Result<(Rc<ClientSideConnection>, AgentCapabilities), TransportError> {
-        let borrow = self.connection.borrow();
-        borrow
-            .as_ref()
-            .map(|s| (s.connection.clone(), s.agent_capabilities.clone()))
-            .ok_or(TransportError::NotConnected)
+    /// Get connection Rc, or error if disconnected.
+    fn require_connection_rc(&self) -> Result<Rc<ClientSideConnection>, TransportError> {
+        self.require_connected().map(|(conn, _)| conn)
     }
 }
 
@@ -350,6 +471,8 @@ impl AcpTransport {
 pub enum TransportError {
     #[error("Not connected")]
     NotConnected,
+    #[error("No active session")]
+    NoActiveSession,
     #[error("Agent not found: {0}")]
     AgentNotFound(String),
     #[error("Spawn error: {0}")]

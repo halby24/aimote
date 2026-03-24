@@ -302,6 +302,27 @@ describe('ChatController', () => {
       expect(session.thought).toBe(''); // reset on turn end
     });
 
+    it('turnCompleted completes streaming message', async () => {
+      const { transport, controller } = setupWithSession();
+      await connectAndStartSession(transport, controller);
+      transport.emit({
+        type: 'messageDelta',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        messageId: 'msg-1' as ReturnType<typeof import('@acme/shared-types').makeMessageId>,
+        delta: 'Hello',
+      });
+      // No messageCompleted — turnCompleted should complete the message
+      transport.emit({
+        type: 'turnCompleted',
+        sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId>,
+        stopReason: 'end_turn',
+      });
+      const session = controller.getActiveSession()!;
+      const msg = session.messages.find((m) => m.role === 'assistant');
+      expect(msg).toBeDefined();
+      expect(msg!.status).toBe('completed');
+    });
+
     it('handles error with active session', async () => {
       const { transport, controller } = setupWithSession();
       await connectAndStartSession(transport, controller);
@@ -312,6 +333,34 @@ describe('ChatController', () => {
       expect(errorMsg).toBeDefined();
       expect(errorMsg!.content).toContain('ERR_001');
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('startSession sets activeSessionId immediately', () => {
+    it('sendMessage works without waiting for sessionStarted event', async () => {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      // Do NOT emit sessionStarted event — simulates race condition
+      await controller.startSession();
+      // Should not throw "No active session"
+      await controller.sendMessage('hello');
+      const session = controller.getActiveSession()!;
+      expect(session.messages).toHaveLength(1);
+      expect(session.messages[0]!.content).toBe('hello');
+    });
+
+    it('does not duplicate session when sessionStarted event arrives later', async () => {
+      const transport = createMockTransport();
+      const controller = new ChatController({ transport });
+      await controller.connect();
+      await controller.startSession();
+      await controller.sendMessage('hello');
+      // Now the event arrives
+      transport.emit({ type: 'sessionStarted', sessionId: 'test-session' as ReturnType<typeof import('@acme/shared-types').makeSessionId> });
+      const session = controller.getActiveSession()!;
+      // Message should still be there (session not reset)
+      expect(session.messages).toHaveLength(1);
     });
   });
 

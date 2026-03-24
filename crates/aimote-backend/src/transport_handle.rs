@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::acp_transport::{AcpTransport, SessionListItem, TransportError};
+use crate::acp_transport::{AcpTransport, InternalNotification, SessionListItem, TransportError};
 use crate::agent_registry::AgentRegistry;
 use crate::config_validator::{self, ConfigValidationResult, ConfigValidationError};
 use crate::event_sink::EventSink;
@@ -77,8 +77,8 @@ impl TransportHandle {
 
             let local = tokio::task::LocalSet::new();
             local.block_on(&rt, async move {
-                let transport = AcpTransport::new(config_clone, sink, cwd);
-                run_actor(&transport, rx).await;
+                let (transport, internal_rx) = AcpTransport::new(config_clone, sink, cwd);
+                run_actor(&transport, rx, internal_rx).await;
             });
         });
 
@@ -190,42 +190,62 @@ impl TransportHandle {
 async fn run_actor(
     transport: &AcpTransport,
     mut rx: mpsc::UnboundedReceiver<TransportCommand>,
+    mut internal_rx: mpsc::UnboundedReceiver<InternalNotification>,
 ) {
-    while let Some(cmd) = rx.recv().await {
-        match cmd {
-            TransportCommand::Connect { reply } => {
-                let _ = reply.send(transport.connect().await);
+    loop {
+        tokio::select! {
+            cmd = rx.recv() => {
+                match cmd {
+                    Some(cmd) => dispatch(transport, cmd).await,
+                    None => break,
+                }
             }
-            TransportCommand::Disconnect { reply } => {
-                transport.disconnect().await;
-                let _ = reply.send(());
+            notif = internal_rx.recv() => {
+                match notif {
+                    Some(InternalNotification::ProcessDied { generation }) => {
+                        transport.handle_process_died(generation);
+                    }
+                    None => {} // sender dropped, ignore
+                }
             }
-            TransportCommand::StartSession { workspace, reply } => {
-                let _ = reply.send(transport.start_session(workspace).await);
-            }
-            TransportCommand::SendUserMessage {
-                session_id,
-                text,
-                reply,
-            } => {
-                let _ = reply.send(transport.spawn_prompt(session_id, text));
-            }
-            TransportCommand::Cancel { session_id, reply } => {
-                let _ = reply.send(transport.cancel(&session_id).await);
-            }
-            TransportCommand::Approve {
-                request_id,
-                option_id,
-                reply,
-            } => {
-                let _ = reply.send(transport.approve(&request_id, &option_id).await);
-            }
-            TransportCommand::ListSessions { reply } => {
-                let _ = reply.send(transport.list_sessions().await);
-            }
-            TransportCommand::LoadSession { session_id, reply } => {
-                let _ = reply.send(transport.load_session(&session_id).await);
-            }
+        }
+    }
+}
+
+async fn dispatch(transport: &AcpTransport, cmd: TransportCommand) {
+    match cmd {
+        TransportCommand::Connect { reply } => {
+            let _ = reply.send(transport.connect().await);
+        }
+        TransportCommand::Disconnect { reply } => {
+            transport.disconnect().await;
+            let _ = reply.send(());
+        }
+        TransportCommand::StartSession { workspace, reply } => {
+            let _ = reply.send(transport.start_session(workspace).await);
+        }
+        TransportCommand::SendUserMessage {
+            session_id,
+            text,
+            reply,
+        } => {
+            let _ = reply.send(transport.spawn_prompt(session_id, text));
+        }
+        TransportCommand::Cancel { session_id, reply } => {
+            let _ = reply.send(transport.cancel(&session_id).await);
+        }
+        TransportCommand::Approve {
+            request_id,
+            option_id,
+            reply,
+        } => {
+            let _ = reply.send(transport.approve(&request_id, &option_id).await);
+        }
+        TransportCommand::ListSessions { reply } => {
+            let _ = reply.send(transport.list_sessions().await);
+        }
+        TransportCommand::LoadSession { session_id, reply } => {
+            let _ = reply.send(transport.load_session(&session_id).await);
         }
     }
 }

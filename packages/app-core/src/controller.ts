@@ -48,8 +48,10 @@ export class ChatController {
           this.connectionStatus = event.status;
           break;
         case 'sessionStarted':
-          this.storeManager.createSession(event.sessionId);
-          this.activeSessionId = event.sessionId;
+          if (this.activeSessionId !== event.sessionId) {
+            this.storeManager.createSession(event.sessionId);
+            this.activeSessionId = event.sessionId;
+          }
           break;
         case 'messageDelta': {
           const { sessionId, messageId, delta } = event;
@@ -98,6 +100,9 @@ export class ChatController {
           this.storeManager.setPermission(event.sessionId, event.requestId, event.payload);
           break;
         case 'turnCompleted':
+          if (this.streamingMessageId && this.activeSessionId) {
+            this.storeManager.completeMessage(this.activeSessionId, this.streamingMessageId);
+          }
           this.storeManager.setTurnActive(event.sessionId, false);
           this.streamingMessageId = null;
           break;
@@ -128,6 +133,12 @@ export class ChatController {
   async startSession(workspace?: string): Promise<string> {
     const input = workspace !== undefined ? { workspace } : undefined;
     const { sessionId } = await this.transport.startSession(input);
+    // Set activeSessionId immediately — the sessionStarted event travels
+    // through a separate async channel and may arrive after this resolves.
+    if (!this.activeSessionId) {
+      this.storeManager.createSession(sessionId);
+      this.activeSessionId = sessionId;
+    }
     return sessionId;
   }
 
