@@ -35,6 +35,12 @@ export class ChatController {
   }
 
   async connect(): Promise<void> {
+    // Clean up any leaked subscription from a previous connect() that was
+    // interrupted by disconnect() before it could set this.unsubscribe
+    // (happens with React StrictMode double-mount).
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+
     const validation = await this.runValidateConfig();
     this.configValidation = validation;
     if (!validation.valid) {
@@ -54,20 +60,24 @@ export class ChatController {
           }
           break;
         case 'messageDelta': {
-          const { sessionId, messageId, delta } = event;
-          if (this.streamingMessageId !== messageId) {
-            if (this.streamingMessageId === null) {
-              this.storeManager.addAssistantMessage(sessionId, messageId);
-              this.streamingMessageId = messageId;
-            }
+          const { sessionId, delta } = event;
+          if (this.streamingMessageId === null) {
+            // Generate a unique message ID locally — the backend currently
+            // hardcodes "default" for every chunk, which causes ID collisions
+            // across turns and duplicated content.
+            const localId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            this.storeManager.addAssistantMessage(sessionId, localId);
+            this.streamingMessageId = localId;
           }
-          this.storeManager.appendMessageDelta(sessionId, messageId, delta);
+          this.storeManager.appendMessageDelta(sessionId, this.streamingMessageId, delta);
           break;
         }
         case 'messageCompleted': {
-          const { sessionId, messageId } = event;
-          this.storeManager.completeMessage(sessionId, messageId);
-          this.streamingMessageId = null;
+          const { sessionId } = event;
+          if (this.streamingMessageId) {
+            this.storeManager.completeMessage(sessionId, this.streamingMessageId);
+            this.streamingMessageId = null;
+          }
           break;
         }
         case 'toolCallStarted':

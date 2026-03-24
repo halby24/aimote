@@ -6,15 +6,25 @@ import type { AgentEvent, AgentsFile, ConfigValidationResult } from '@acme/share
 export class TauriIpcTransport implements AgentTransport {
   private listeners = new Set<(event: AgentEvent) => void>();
   private unlisten: UnlistenFn | null = null;
+  /** Guard against concurrent listen() calls (e.g. React StrictMode double-mount) */
+  private listenPending = false;
 
   async connect(): Promise<void> {
-    // Set up event listener before connecting
-    if (!this.unlisten) {
-      this.unlisten = await listen<AgentEvent>('agent-event', (event) => {
-        for (const listener of this.listeners) {
-          listener(event.payload);
-        }
-      });
+    // Set up event listener before connecting.
+    // The listenPending flag prevents a second concurrent connect() from
+    // registering a duplicate Tauri event listener while the first await
+    // listen() is still in-flight.
+    if (!this.unlisten && !this.listenPending) {
+      this.listenPending = true;
+      try {
+        this.unlisten = await listen<AgentEvent>('agent-event', (event) => {
+          for (const listener of this.listeners) {
+            listener(event.payload);
+          }
+        });
+      } finally {
+        this.listenPending = false;
+      }
     }
     await invoke('connect');
   }
