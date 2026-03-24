@@ -1,6 +1,6 @@
 import type { AgentTransport } from '@acme/transport';
 import type { ConnectionStatus, ConfigValidationResult, AgentsFile } from '@acme/shared-types';
-import { makeSessionId } from '@acme/shared-types';
+import { makeSessionId, makeMessageId } from '@acme/shared-types';
 import { ChatStoreManager } from './store.js';
 
 export interface ChatControllerOptions {
@@ -65,7 +65,7 @@ export class ChatController {
             // Generate a unique message ID locally — the backend currently
             // hardcodes "default" for every chunk, which causes ID collisions
             // across turns and duplicated content.
-            const localId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const localId = makeMessageId(`assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`);
             this.storeManager.addAssistantMessage(sessionId, localId);
             this.streamingMessageId = localId;
           }
@@ -111,7 +111,7 @@ export class ChatController {
           break;
         case 'turnCompleted':
           if (this.streamingMessageId && this.activeSessionId) {
-            this.storeManager.completeMessage(this.activeSessionId, this.streamingMessageId);
+            this.storeManager.completeMessage(event.sessionId, this.streamingMessageId);
           }
           this.storeManager.setTurnActive(event.sessionId, false);
           this.streamingMessageId = null;
@@ -137,6 +137,8 @@ export class ChatController {
   async disconnect(): Promise<void> {
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.activeSessionId = null;
+    this.streamingMessageId = null;
     await this.transport.disconnect();
   }
 

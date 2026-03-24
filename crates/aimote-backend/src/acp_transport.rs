@@ -105,7 +105,6 @@ impl AcpTransport {
     // -- lifecycle -----------------------------------------------------------
 
     pub async fn connect(&self) -> Result<(), TransportError> {
-        // Disconnect first if already connected (idempotent reconnect)
         if matches!(&*self.state.borrow(), TransportState::Connected { .. }) {
             self.disconnect().await;
         }
@@ -271,7 +270,6 @@ impl AcpTransport {
 
         let session_id = response.session_id.to_string();
 
-        // Register session in state
         {
             let mut state = self.state.borrow_mut();
             if let TransportState::Connected { session, .. } = &mut *state {
@@ -298,11 +296,11 @@ impl AcpTransport {
         session_id: String,
         text: String,
     ) -> Result<(), TransportError> {
-        // Validate state: must be connected with a matching session and no active turn
-        {
-            let state = self.state.borrow();
-            match &*state {
-                TransportState::Connected { session: Some(s), .. } => {
+        // Validate state, extract connection, and mark turn active in one borrow
+        let conn = {
+            let mut state = self.state.borrow_mut();
+            match &mut *state {
+                TransportState::Connected { inner, session: Some(s) } => {
                     if s.session_id != session_id {
                         return Err(TransportError::SessionError(
                             format!("Session {} is not the active session", session_id),
@@ -311,6 +309,8 @@ impl AcpTransport {
                     if s.turn_active {
                         return Err(TransportError::TurnInProgress);
                     }
+                    s.turn_active = true;
+                    inner.conn.clone()
                 }
                 TransportState::Connected { session: None, .. } => {
                     return Err(TransportError::NoActiveSession);
@@ -319,17 +319,7 @@ impl AcpTransport {
                     return Err(TransportError::NotConnected);
                 }
             }
-        }
-
-        let conn = self.require_connection_rc()?;
-
-        // Mark turn active
-        {
-            let mut state = self.state.borrow_mut();
-            if let TransportState::Connected { session: Some(s), .. } = &mut *state {
-                s.turn_active = true;
-            }
-        }
+        };
 
         let sink = self.sink.clone();
         let state_rc = self.state.clone();
@@ -434,7 +424,6 @@ impl AcpTransport {
             .await
             .map_err(|e| TransportError::SessionError(e.to_string()))?;
 
-        // Register loaded session in state
         {
             let mut state = self.state.borrow_mut();
             if let TransportState::Connected { session, .. } = &mut *state {
@@ -463,7 +452,11 @@ impl AcpTransport {
 
     /// Get connection Rc, or error if disconnected.
     fn require_connection_rc(&self) -> Result<Rc<ClientSideConnection>, TransportError> {
-        self.require_connected().map(|(conn, _)| conn)
+        let borrow = self.state.borrow();
+        match &*borrow {
+            TransportState::Connected { inner, .. } => Ok(inner.conn.clone()),
+            TransportState::Disconnected => Err(TransportError::NotConnected),
+        }
     }
 }
 
