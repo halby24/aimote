@@ -19,7 +19,9 @@
   "dependencies": {
     "@acme/app-core": "workspace:*",
     "@acme/shared-types": "workspace:*",
-    "@acme/ui-common": "workspace:*"
+    "@acme/transport-relay": "workspace:*",
+    "@acme/ui-common": "workspace:*",
+    "@reactunity/renderer": "^0.16.0"
   },
   "peerDependencies": {
     "react": "^18.0.0"

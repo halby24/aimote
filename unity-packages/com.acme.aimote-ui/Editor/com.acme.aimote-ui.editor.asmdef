@@ -1,0 +1,19 @@
+{
+    "name": "com.acme.aimote-ui.editor",
+    "rootNamespace": "Acme.AimoteUI.Editor",
+    "references": [
+        "ReactUnity.Editor",
+        "ReactUnity"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

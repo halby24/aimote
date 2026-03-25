@@ -8,6 +8,7 @@
     "name": "Acme"
   },
   "dependencies": {
-    "com.reactunity.core": "0.16.0"
+    "com.reactunity.core": "0.16.0",
+    "com.reactunity.quickjs": "0.16.0"
   }
 }
