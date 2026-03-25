@@ -1,1 +1,13 @@
 export type { ChatScreenProps, MessageItemProps, MessageInputProps } from './contracts.js';
+export { ChatScreen } from './components/ChatScreen.js';
+export { SessionHeader } from './components/SessionHeader.js';
+export { MessageList } from './components/MessageList.js';
+export { MessageInput } from './components/MessageInput.js';
+export { ToolCallList } from './components/ToolCallList.js';
+export { PlanPanel } from './components/PlanPanel.js';
+export { PermissionDialog } from './components/PermissionDialog.js';
+export { ThoughtBubble } from './components/ThoughtBubble.js';
+export { UsageBar } from './components/UsageBar.js';
+export { ConnectionStatusPanel } from './components/ConnectionStatusPanel.js';
+export { AgentSettingsPanel } from './components/AgentSettingsPanel.js';
+export { useChat, useAgentSettings } from '@acme/ui-common';

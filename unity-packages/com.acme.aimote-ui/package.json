@@ -1,0 +1,13 @@
+{
+  "name": "com.acme.aimote-ui",
+  "displayName": "Aimote UI",
+  "version": "0.0.1",
+  "unity": "2021.3",
+  "description": "ReactUnity UI components for Aimote AI chat",
+  "author": {
+    "name": "Acme"
+  },
+  "dependencies": {
+    "com.reactunity.core": "0.16.0"
+  }
+}

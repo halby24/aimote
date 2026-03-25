@@ -1,0 +1,214 @@
+import type { ChatController } from '@acme/app-core';
+import { useAgentSettings } from '@acme/ui-common';
+
+interface Props {
+  controller: ChatController;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const inputStyle = {
+  padding: 6,
+  paddingLeft: 8,
+  paddingRight: 8,
+  borderRadius: 4,
+  borderWidth: 1,
+  borderColor: '#d1d5db',
+  fontSize: 13,
+  width: '100%',
+} as const;
+
+export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): React.ReactElement | null {
+  const { viewModel, updateAgent, addAgent, removeAgent, setDefaultAgent, save } =
+    useAgentSettings({ controller, isOpen, onClose });
+
+  if (!isOpen) return null;
+
+  return (
+    <view
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <scroll
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: 8,
+          padding: 24,
+          width: 560,
+          maxHeight: '80%',
+        }}
+      >
+        <text style={{ marginBottom: 16, fontSize: 18, fontWeight: '600' }}>
+          エージェント設定
+        </text>
+
+        {viewModel.isLoading && (
+          <text style={{ fontSize: 14, color: '#666' }}>読み込み中...</text>
+        )}
+
+        {viewModel.error && (
+          <view
+            style={{
+              padding: 8,
+              paddingLeft: 12,
+              paddingRight: 12,
+              backgroundColor: '#fef2f2',
+              borderRadius: 4,
+              marginBottom: 12,
+            }}
+          >
+            <text style={{ color: '#dc2626', fontSize: 13 }}>{viewModel.error}</text>
+          </view>
+        )}
+
+        {!viewModel.isLoading && (
+          <>
+            {viewModel.agents.map((agent, index) => (
+              <view
+                key={index}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#e0e0e0',
+                  borderRadius: 6,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <view
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <button
+                    onClick={() => setDefaultAgent(agent.name)}
+                    style={{
+                      padding: 4,
+                      paddingLeft: 10,
+                      paddingRight: 10,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: agent.name === viewModel.defaultAgent ? '#3b82f6' : '#ccc',
+                      backgroundColor: agent.name === viewModel.defaultAgent ? '#dbeafe' : '#fff',
+                      fontSize: 12,
+                    }}
+                  >
+                    {agent.name === viewModel.defaultAgent ? '\u25c9 デフォルト' : '\u25cb デフォルト'}
+                  </button>
+                  <view style={{ flexGrow: 1 }} />
+                  <button
+                    onClick={() => removeAgent(index)}
+                    style={{
+                      padding: 2,
+                      paddingLeft: 8,
+                      paddingRight: 8,
+                      borderWidth: 1,
+                      borderColor: '#ccc',
+                      borderRadius: 4,
+                      backgroundColor: '#fff',
+                      fontSize: 12,
+                      color: '#dc2626',
+                    }}
+                  >
+                    削除
+                  </button>
+                </view>
+                <view style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input
+                    placeholder="名前"
+                    value={agent.name}
+                    onValueChange={(val: string) => updateAgent(index, 'name', val)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="コマンド"
+                    value={agent.command}
+                    onValueChange={(val: string) => updateAgent(index, 'command', val)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="引数 (カンマ区切り)"
+                    value={agent.args}
+                    onValueChange={(val: string) => updateAgent(index, 'args', val)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="環境変数 (KEY=VALUE、1行ずつ)"
+                    value={agent.env}
+                    onValueChange={(val: string) => updateAgent(index, 'env', val)}
+                    style={{ ...inputStyle, fontFamily: 'monospace' }}
+                  />
+                </view>
+              </view>
+            ))}
+
+            <button
+              onClick={addAgent}
+              style={{
+                padding: 6,
+                paddingLeft: 14,
+                paddingRight: 14,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderStyle: 'dashed',
+                borderColor: '#ccc',
+                backgroundColor: '#fafafa',
+                fontSize: 13,
+                width: '100%',
+                marginBottom: 16,
+              }}
+            >
+              + エージェント追加
+            </button>
+
+            <view style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={onClose}
+                style={{
+                  padding: 6,
+                  paddingLeft: 16,
+                  paddingRight: 16,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  backgroundColor: '#fff',
+                  fontSize: 13,
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => void save()}
+                disabled={viewModel.isSaving}
+                style={{
+                  padding: 6,
+                  paddingLeft: 16,
+                  paddingRight: 16,
+                  borderRadius: 6,
+                  borderWidth: 0,
+                  backgroundColor: '#3b82f6',
+                  color: '#fff',
+                  fontSize: 13,
+                  opacity: viewModel.isSaving ? 0.6 : 1,
+                }}
+              >
+                {viewModel.isSaving ? '保存中...' : '保存'}
+              </button>
+            </view>
+          </>
+        )}
+      </scroll>
+    </view>
+  );
+}

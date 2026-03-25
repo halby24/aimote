@@ -9,6 +9,7 @@ export interface ChatScreenProps {
   viewModel: ChatScreenViewModel;
   onSend: (text: string) => Promise<void>;
   onCancel: () => Promise<void>;
+  onApprove: (requestId: string, optionId: string) => Promise<void>;
 }
 
 export interface MessageItemProps {

@@ -20,7 +20,11 @@
     "@acme/app-core": "workspace:*",
     "@acme/shared-types": "workspace:*"
   },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
   "devDependencies": {
+    "@types/react": "^18.3.18",
     "typescript": "*",
     "vitest": "*"
   }

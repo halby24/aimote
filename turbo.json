@@ -8,6 +8,11 @@
     "lint": {
       "dependsOn": []
     },
+    "build:unity": {
+      "dependsOn": ["^build"],
+      "outputs": ["../../unity-packages/com.acme.aimote-ui/Runtime/**"],
+      "inputs": ["src/**"]
+    },
     "typecheck": {
       "dependsOn": ["^build"]
     }
