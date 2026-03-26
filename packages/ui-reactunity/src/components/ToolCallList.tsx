@@ -30,7 +30,7 @@ export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
       }}
     >
       {active.map((tc) => (
-        <view key={tc.toolCallId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <view key={tc.toolCallId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <view
             style={{
               width: 6,

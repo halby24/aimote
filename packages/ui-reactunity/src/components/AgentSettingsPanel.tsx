@@ -1,6 +1,13 @@
 import type { ChatController } from '@acme/app-core';
 import { useAgentSettings } from '@acme/ui-common';
 
+/** Extract string value from ReactUnity's C# ChangeEvent<string> or plain string */
+function extractInputValue(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw === 'object' && 'newValue' in raw) return String((raw as Record<string, unknown>).newValue);
+  return '';
+}
+
 interface Props {
   controller: ChatController;
   isOpen: boolean;
@@ -51,9 +58,9 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
           エージェント設定
         </text>
 
-        {viewModel.isLoading && (
+        {viewModel.isLoading ? (
           <text style={{ fontSize: 14, color: '#666' }}>読み込み中...</text>
-        )}
+        ) : null}
 
         {viewModel.error && (
           <view
@@ -85,7 +92,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
               >
                 <view
                   style={{
-                    display: 'flex',
+                    flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
                     marginBottom: 8,
@@ -128,25 +135,25 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                   <input
                     placeholder="名前"
                     value={agent.name}
-                    onValueChange={(val: string) => updateAgent(index, 'name', val)}
+                    onChange={(...a: unknown[]) => updateAgent(index, 'name', extractInputValue(a[0]))}
                     style={inputStyle}
                   />
                   <input
                     placeholder="コマンド"
                     value={agent.command}
-                    onValueChange={(val: string) => updateAgent(index, 'command', val)}
+                    onChange={(...a: unknown[]) => updateAgent(index, 'command', extractInputValue(a[0]))}
                     style={inputStyle}
                   />
                   <input
                     placeholder="引数 (カンマ区切り)"
                     value={agent.args}
-                    onValueChange={(val: string) => updateAgent(index, 'args', val)}
+                    onChange={(...a: unknown[]) => updateAgent(index, 'args', extractInputValue(a[0]))}
                     style={inputStyle}
                   />
                   <input
                     placeholder="環境変数 (KEY=VALUE、1行ずつ)"
                     value={agent.env}
-                    onValueChange={(val: string) => updateAgent(index, 'env', val)}
+                    onChange={(...a: unknown[]) => updateAgent(index, 'env', extractInputValue(a[0]))}
                     style={{ ...inputStyle, fontFamily: 'monospace' }}
                   />
                 </view>
@@ -172,7 +179,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
               + エージェント追加
             </button>
 
-            <view style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <view style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <button
                 onClick={onClose}
                 style={{

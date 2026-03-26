@@ -8,7 +8,7 @@ export function UsageBar({ usage }: Props): React.ReactElement {
   const barColor = usage.percentage > 80 ? '#ef4444' : usage.percentage > 50 ? '#f59e0b' : '#22c55e';
 
   return (
-    <view style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       <view
         style={{
           width: 80,

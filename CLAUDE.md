@@ -92,6 +92,11 @@ cd apps/desktop-tauri && pnpm tauri dev
 
 # pc-relay 起動 (Rust版)
 cargo run -p pc-relay -- --port 3001
+
+# ReactUnity向けバンドル (esbuild → Unity UPMパッケージへ出力)
+pnpm --filter @acme/ui-reactunity run build:unity
+# 出力先: unity-packages/com.acme.aimote-ui/Runtime/Resources/react/index.js
+# ※ tsc (pnpm build) だけでは Unity に反映されない。UI変更後は必ず build:unity を実行
 ```
 
 ## アーキテクチャ要点

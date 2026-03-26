@@ -23,7 +23,7 @@ export function PermissionDialog({ permission, onApprove }: Props): React.ReactE
       <text style={{ fontSize: 14, fontWeight: '600', color: '#92400e' }}>
         {permission.description}
       </text>
-      <view style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <view style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {permission.options.map((opt) => (
           <button
             key={opt.optionId}

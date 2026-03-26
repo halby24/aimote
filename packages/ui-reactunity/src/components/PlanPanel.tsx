@@ -31,7 +31,7 @@ export function PlanPanel({ plan }: Props): React.ReactElement | null {
         <view
           key={i}
           style={{
-            display: 'flex',
+            flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
             paddingTop: 2,

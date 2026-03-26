@@ -32,7 +32,7 @@ function MessageBubble({ message }: { message: MessageViewModel }): React.ReactE
   return (
     <view
       style={{
-        display: 'flex',
+        flexDirection: 'row',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
       }}
     >
@@ -49,13 +49,13 @@ function MessageBubble({ message }: { message: MessageViewModel }): React.ReactE
       >
         <text style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
           {message.content}
-          {message.isStreaming && '\u258c'}
+          {message.isStreaming ? '\u258c' : ''}
         </text>
-        {message.isError && (
+        {message.isError ? (
           <text style={{ color: '#ff4444', marginLeft: 8, fontSize: 12 }}>
             {'\u26a0'} エラー
           </text>
-        )}
+        ) : null}
       </view>
     </view>
   );

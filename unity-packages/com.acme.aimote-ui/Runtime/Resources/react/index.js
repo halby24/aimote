@@ -1094,7 +1094,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef2(initialValue) {
+        function useRef3(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -1888,7 +1888,7 @@ var require_react_development = __commonJS({
         exports.useLayoutEffect = useLayoutEffect;
         exports.useMemo = useMemo;
         exports.useReducer = useReducer;
-        exports.useRef = useRef2;
+        exports.useRef = useRef3;
         exports.useState = useState6;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -20208,7 +20208,7 @@ function useAgentSettings({ controller: controller2, isOpen, onClose }) {
 var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function UsageBar({ usage }) {
   const barColor = usage.percentage > 80 ? "#ef4444" : usage.percentage > 50 ? "#f59e0b" : "#22c55e";
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("view", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("view", { style: { flexDirection: "row", alignItems: "center", gap: 8 }, children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       "view",
       {
@@ -20273,14 +20273,14 @@ function SessionHeader({
         paddingRight: 16,
         borderBottomWidth: 1,
         borderBottomColor: "#e0e0e0",
-        display: "flex",
+        flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         backgroundColor: "#fff",
         gap: 12
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 0 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
             "text",
             {
@@ -20310,9 +20310,9 @@ function SessionHeader({
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }, children: [
           usage && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(UsageBar, { usage }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { display: "flex", alignItems: "center", gap: 4 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("view", { style: { flexDirection: "row", alignItems: "center", gap: 4 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
               "view",
               {
@@ -20343,7 +20343,7 @@ function SessionHeader({
               children: "\u2699"
             }
           ),
-          isTurnActive && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          isTurnActive ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
             "button",
             {
               onClick: onCancel,
@@ -20359,7 +20359,7 @@ function SessionHeader({
               },
               children: "\u30AD\u30E3\u30F3\u30BB\u30EB"
             }
-          )
+          ) : null
         ] })
       ]
     }
@@ -20416,7 +20416,7 @@ function ToolCallList({ toolCalls }) {
         gap: 4,
         backgroundColor: "#fafafa"
       },
-      children: active.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("view", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+      children: active.map((tc) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("view", { style: { flexDirection: "row", alignItems: "center", gap: 8 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "view",
           {
@@ -20461,7 +20461,7 @@ function MessageBubble({ message }) {
     "view",
     {
       style: {
-        display: "flex",
+        flexDirection: "row",
         justifyContent: isUser ? "flex-end" : "flex-start"
       },
       children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
@@ -20479,12 +20479,12 @@ function MessageBubble({ message }) {
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("text", { style: { fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }, children: [
               message.content,
-              message.isStreaming && "\u258C"
+              message.isStreaming ? "\u258C" : ""
             ] }),
-            message.isError && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("text", { style: { color: "#ff4444", marginLeft: 8, fontSize: 12 }, children: [
+            message.isError ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("text", { style: { color: "#ff4444", marginLeft: 8, fontSize: 12 }, children: [
               "\u26A0",
               " \u30A8\u30E9\u30FC"
-            ] })
+            ] }) : null
           ]
         }
       )
@@ -20518,7 +20518,7 @@ function PlanPanel({ plan }) {
           "view",
           {
             style: {
-              display: "flex",
+              flexDirection: "row",
               alignItems: "center",
               gap: 6,
               paddingTop: 2,
@@ -20573,7 +20573,7 @@ function PermissionDialog({ permission, onApprove }) {
       },
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("text", { style: { fontSize: 14, fontWeight: "600", color: "#92400e" }, children: permission.description }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("view", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: permission.options.map((opt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("view", { style: { flexDirection: "row", gap: 8, flexWrap: "wrap" }, children: permission.options.map((opt) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
           "button",
           {
             onClick: () => onApprove(permission.requestId, opt.optionId),
@@ -20600,23 +20600,27 @@ function PermissionDialog({ permission, onApprove }) {
 // src/components/MessageInput.tsx
 var import_react5 = __toESM(require_react(), 1);
 var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
+function extractValue(raw) {
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw === "object" && "newValue" in raw)
+    return String(raw.newValue);
+  return "";
+}
 function MessageInput({ input, onSend }) {
-  const [text, setText] = (0, import_react5.useState)("");
+  const [hasText, setHasText] = (0, import_react5.useState)(false);
+  const textRef = (0, import_react5.useRef)("");
   const handleSend = (0, import_react5.useCallback)(async () => {
-    const trimmed = text.trim();
+    const trimmed = textRef.current.trim();
     if (!trimmed || input.isDisabled) return;
-    setText("");
+    textRef.current = "";
+    setHasText(false);
     await onSend(trimmed);
-  }, [text, input.isDisabled, onSend]);
-  const handleKeyDown = (0, import_react5.useCallback)(
-    (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        void handleSend();
-      }
-    },
-    [handleSend]
-  );
+  }, [input.isDisabled, onSend]);
+  const handleChange = (0, import_react5.useCallback)((...args) => {
+    const val = extractValue(args[0]);
+    textRef.current = val;
+    setHasText(val.trim().length > 0);
+  }, []);
   return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
     "view",
     {
@@ -20626,7 +20630,7 @@ function MessageInput({ input, onSend }) {
         paddingRight: 16,
         borderTopWidth: 1,
         borderTopColor: "#e0e0e0",
-        display: "flex",
+        flexDirection: "row",
         gap: 8,
         alignItems: "flex-end"
       },
@@ -20634,13 +20638,14 @@ function MessageInput({ input, onSend }) {
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
           "input",
           {
-            value: text,
-            onValueChange: (val) => setText(val),
-            onKeyDown: handleKeyDown,
+            onChange: handleChange,
+            onReturn: () => void handleSend(),
             disabled: input.isDisabled,
             placeholder: "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u5165\u529B... (Enter \u3067\u9001\u4FE1)",
             style: {
               flexGrow: 1,
+              flexShrink: 1,
+              flexBasis: 0,
               padding: 8,
               paddingLeft: 12,
               paddingRight: 12,
@@ -20656,14 +20661,15 @@ function MessageInput({ input, onSend }) {
           "button",
           {
             onClick: () => void handleSend(),
-            disabled: input.isDisabled || !text.trim(),
+            disabled: input.isDisabled || !hasText,
             style: {
+              flexShrink: 0,
               padding: 8,
               paddingLeft: 20,
               paddingRight: 20,
               borderRadius: 8,
               borderWidth: 0,
-              backgroundColor: input.isDisabled || !text.trim() ? "#ccc" : "#0078d4",
+              backgroundColor: input.isDisabled || !hasText ? "#ccc" : "#0078d4",
               color: "#fff",
               fontSize: 14,
               height: 40
@@ -20710,6 +20716,11 @@ function ConnectionStatusPanel({
 
 // src/components/AgentSettingsPanel.tsx
 var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+function extractInputValue(raw) {
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw === "object" && "newValue" in raw) return String(raw.newValue);
+  return "";
+}
 var inputStyle = {
   padding: 6,
   paddingLeft: 8,
@@ -20749,7 +20760,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
           },
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: { marginBottom: 16, fontSize: 18, fontWeight: "600" }, children: "\u30A8\u30FC\u30B8\u30A7\u30F3\u30C8\u8A2D\u5B9A" }),
-            viewModel.isLoading && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: { fontSize: 14, color: "#666" }, children: "\u8AAD\u307F\u8FBC\u307F\u4E2D..." }),
+            viewModel.isLoading ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: { fontSize: 14, color: "#666" }, children: "\u8AAD\u307F\u8FBC\u307F\u4E2D..." }) : null,
             viewModel.error && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
               "view",
               {
@@ -20780,7 +20791,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                       "view",
                       {
                         style: {
-                          display: "flex",
+                          flexDirection: "row",
                           alignItems: "center",
                           gap: 8,
                           marginBottom: 8
@@ -20831,7 +20842,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                         {
                           placeholder: "\u540D\u524D",
                           value: agent.name,
-                          onValueChange: (val) => updateAgent(index, "name", val),
+                          onChange: (...a) => updateAgent(index, "name", extractInputValue(a[0])),
                           style: inputStyle
                         }
                       ),
@@ -20840,7 +20851,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                         {
                           placeholder: "\u30B3\u30DE\u30F3\u30C9",
                           value: agent.command,
-                          onValueChange: (val) => updateAgent(index, "command", val),
+                          onChange: (...a) => updateAgent(index, "command", extractInputValue(a[0])),
                           style: inputStyle
                         }
                       ),
@@ -20849,7 +20860,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                         {
                           placeholder: "\u5F15\u6570 (\u30AB\u30F3\u30DE\u533A\u5207\u308A)",
                           value: agent.args,
-                          onValueChange: (val) => updateAgent(index, "args", val),
+                          onChange: (...a) => updateAgent(index, "args", extractInputValue(a[0])),
                           style: inputStyle
                         }
                       ),
@@ -20858,7 +20869,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                         {
                           placeholder: "\u74B0\u5883\u5909\u6570 (KEY=VALUE\u30011\u884C\u305A\u3064)",
                           value: agent.env,
-                          onValueChange: (val) => updateAgent(index, "env", val),
+                          onChange: (...a) => updateAgent(index, "env", extractInputValue(a[0])),
                           style: { ...inputStyle, fontFamily: "monospace" }
                         }
                       )
@@ -20887,7 +20898,7 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                   children: "+ \u30A8\u30FC\u30B8\u30A7\u30F3\u30C8\u8FFD\u52A0"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: { display: "flex", justifyContent: "flex-end", gap: 8 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: { flexDirection: "row", justifyContent: "flex-end", gap: 8 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
                   "button",
                   {

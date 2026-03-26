@@ -1,5 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { ChatInputViewModel } from '@acme/ui-common';
+
+/** Extract string from ReactUnity's C# ChangeEvent<string> or plain string */
+function extractValue(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw === 'object' && 'newValue' in raw)
+    return String((raw as Record<string, unknown>).newValue);
+  return '';
+}
 
 interface Props {
   input: ChatInputViewModel;
@@ -7,24 +15,23 @@ interface Props {
 }
 
 export function MessageInput({ input, onSend }: Props): React.ReactElement {
-  const [text, setText] = useState('');
+  // Track whether the button should be enabled (re-render only for this)
+  const [hasText, setHasText] = useState(false);
+  const textRef = useRef('');
 
   const handleSend = useCallback(async () => {
-    const trimmed = text.trim();
+    const trimmed = textRef.current.trim();
     if (!trimmed || input.isDisabled) return;
-    setText('');
+    textRef.current = '';
+    setHasText(false);
     await onSend(trimmed);
-  }, [text, input.isDisabled, onSend]);
+  }, [input.isDisabled, onSend]);
 
-  const handleKeyDown = useCallback(
-    (e: { key: string; shiftKey?: boolean; preventDefault: () => void }) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        void handleSend();
-      }
-    },
-    [handleSend],
-  );
+  const handleChange = useCallback((...args: unknown[]) => {
+    const val = extractValue(args[0]);
+    textRef.current = val;
+    setHasText(val.trim().length > 0);
+  }, []);
 
   return (
     <view
@@ -34,19 +41,20 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
         paddingRight: 16,
         borderTopWidth: 1,
         borderTopColor: '#e0e0e0',
-        display: 'flex',
+        flexDirection: 'row',
         gap: 8,
         alignItems: 'flex-end',
       }}
     >
       <input
-        value={text}
-        onValueChange={(val: string) => setText(val)}
-        onKeyDown={handleKeyDown}
+        onChange={handleChange}
+        onReturn={() => void handleSend()}
         disabled={input.isDisabled}
         placeholder="メッセージを入力... (Enter で送信)"
         style={{
           flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: 0,
           padding: 8,
           paddingLeft: 12,
           paddingRight: 12,
@@ -59,14 +67,15 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
       />
       <button
         onClick={() => void handleSend()}
-        disabled={input.isDisabled || !text.trim()}
+        disabled={input.isDisabled || !hasText}
         style={{
+          flexShrink: 0,
           padding: 8,
           paddingLeft: 20,
           paddingRight: 20,
           borderRadius: 8,
           borderWidth: 0,
-          backgroundColor: input.isDisabled || !text.trim() ? '#ccc' : '#0078d4',
+          backgroundColor: input.isDisabled || !hasText ? '#ccc' : '#0078d4',
           color: '#fff',
           fontSize: 14,
           height: 40,

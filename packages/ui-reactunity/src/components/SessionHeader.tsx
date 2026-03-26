@@ -47,14 +47,14 @@ export function SessionHeader({
         paddingRight: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
-        display: 'flex',
+        flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: '#fff',
         gap: 12,
       }}
     >
-      <view style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <text
           style={{
             margin: 0,
@@ -82,9 +82,9 @@ export function SessionHeader({
           </text>
         )}
       </view>
-      <view style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {usage && <UsageBar usage={usage} />}
-        <view style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <view style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <view
             style={{
               width: 8,
@@ -110,7 +110,7 @@ export function SessionHeader({
         >
           {'\u2699'}
         </button>
-        {isTurnActive && (
+        {isTurnActive ? (
           <button
             onClick={onCancel}
             style={{
@@ -126,7 +126,7 @@ export function SessionHeader({
           >
             キャンセル
           </button>
-        )}
+        ) : null}
       </view>
     </view>
   );
