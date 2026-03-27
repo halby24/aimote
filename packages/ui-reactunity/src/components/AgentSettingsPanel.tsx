@@ -14,6 +14,19 @@ interface Props {
   onClose: () => void;
 }
 
+const fieldRowStyle = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+} as const;
+
+const labelStyle = {
+  fontSize: 13,
+  color: '#555',
+  width: 60,
+  flexShrink: 0,
+} as const;
+
 const inputStyle = {
   padding: 6,
   paddingLeft: 8,
@@ -22,7 +35,9 @@ const inputStyle = {
   borderWidth: 1,
   borderColor: '#d1d5db',
   fontSize: 13,
-  width: '100%',
+  flexGrow: 1,
+  color: '#111',
+  backgroundColor: '#fff',
 } as const;
 
 export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): React.ReactElement | null {
@@ -132,30 +147,38 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                   </button>
                 </view>
                 <view style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <input
-                    placeholder="名前"
-                    value={agent.name}
-                    onChange={(...a: unknown[]) => updateAgent(index, 'name', extractInputValue(a[0]))}
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="コマンド"
-                    value={agent.command}
-                    onChange={(...a: unknown[]) => updateAgent(index, 'command', extractInputValue(a[0]))}
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="引数 (カンマ区切り)"
-                    value={agent.args}
-                    onChange={(...a: unknown[]) => updateAgent(index, 'args', extractInputValue(a[0]))}
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="環境変数 (KEY=VALUE、1行ずつ)"
-                    value={agent.env}
-                    onChange={(...a: unknown[]) => updateAgent(index, 'env', extractInputValue(a[0]))}
-                    style={{ ...inputStyle, fontFamily: 'monospace' }}
-                  />
+                  <view style={fieldRowStyle}>
+                    <text style={labelStyle}>名前</text>
+                    <input
+                      value={agent.name}
+                      onChange={(...a: unknown[]) => updateAgent(index, 'name', extractInputValue(a[0]))}
+                      style={inputStyle}
+                    />
+                  </view>
+                  <view style={fieldRowStyle}>
+                    <text style={labelStyle}>コマンド</text>
+                    <input
+                      value={agent.command}
+                      onChange={(...a: unknown[]) => updateAgent(index, 'command', extractInputValue(a[0]))}
+                      style={inputStyle}
+                    />
+                  </view>
+                  <view style={fieldRowStyle}>
+                    <text style={labelStyle}>引数</text>
+                    <input
+                      value={agent.args}
+                      onChange={(...a: unknown[]) => updateAgent(index, 'args', extractInputValue(a[0]))}
+                      style={inputStyle}
+                    />
+                  </view>
+                  <view style={fieldRowStyle}>
+                    <text style={labelStyle}>環境変数</text>
+                    <input
+                      value={agent.env}
+                      onChange={(...a: unknown[]) => updateAgent(index, 'env', extractInputValue(a[0]))}
+                      style={{ ...inputStyle, fontFamily: 'monospace' }}
+                    />
+                  </view>
                 </view>
               </view>
             ))}

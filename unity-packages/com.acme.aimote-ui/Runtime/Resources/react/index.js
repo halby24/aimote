@@ -20653,6 +20653,7 @@ function MessageInput({ input, onSend }) {
               borderWidth: 1,
               borderColor: "#ccc",
               fontSize: 14,
+              color: "#111",
               backgroundColor: input.isDisabled ? "#f9f9f9" : "#fff"
             }
           }
@@ -20721,6 +20722,17 @@ function extractInputValue(raw) {
   if (raw && typeof raw === "object" && "newValue" in raw) return String(raw.newValue);
   return "";
 }
+var fieldRowStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8
+};
+var labelStyle = {
+  fontSize: 13,
+  color: "#555",
+  width: 60,
+  flexShrink: 0
+};
 var inputStyle = {
   padding: 6,
   paddingLeft: 8,
@@ -20729,7 +20741,9 @@ var inputStyle = {
   borderWidth: 1,
   borderColor: "#d1d5db",
   fontSize: 13,
-  width: "100%"
+  flexGrow: 1,
+  color: "#111",
+  backgroundColor: "#fff"
 };
 function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
   const { viewModel, updateAgent, addAgent, removeAgent, setDefaultAgent, save } = useAgentSettings({ controller: controller2, isOpen, onClose });
@@ -20837,42 +20851,50 @@ function AgentSettingsPanel({ controller: controller2, isOpen, onClose }) {
                       }
                     ),
                     /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: { display: "flex", flexDirection: "column", gap: 6 }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-                        "input",
-                        {
-                          placeholder: "\u540D\u524D",
-                          value: agent.name,
-                          onChange: (...a) => updateAgent(index, "name", extractInputValue(a[0])),
-                          style: inputStyle
-                        }
-                      ),
-                      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-                        "input",
-                        {
-                          placeholder: "\u30B3\u30DE\u30F3\u30C9",
-                          value: agent.command,
-                          onChange: (...a) => updateAgent(index, "command", extractInputValue(a[0])),
-                          style: inputStyle
-                        }
-                      ),
-                      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-                        "input",
-                        {
-                          placeholder: "\u5F15\u6570 (\u30AB\u30F3\u30DE\u533A\u5207\u308A)",
-                          value: agent.args,
-                          onChange: (...a) => updateAgent(index, "args", extractInputValue(a[0])),
-                          style: inputStyle
-                        }
-                      ),
-                      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-                        "input",
-                        {
-                          placeholder: "\u74B0\u5883\u5909\u6570 (KEY=VALUE\u30011\u884C\u305A\u3064)",
-                          value: agent.env,
-                          onChange: (...a) => updateAgent(index, "env", extractInputValue(a[0])),
-                          style: { ...inputStyle, fontFamily: "monospace" }
-                        }
-                      )
+                      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: fieldRowStyle, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: labelStyle, children: "\u540D\u524D" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                          "input",
+                          {
+                            value: agent.name,
+                            onChange: (...a) => updateAgent(index, "name", extractInputValue(a[0])),
+                            style: inputStyle
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: fieldRowStyle, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: labelStyle, children: "\u30B3\u30DE\u30F3\u30C9" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                          "input",
+                          {
+                            value: agent.command,
+                            onChange: (...a) => updateAgent(index, "command", extractInputValue(a[0])),
+                            style: inputStyle
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: fieldRowStyle, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: labelStyle, children: "\u5F15\u6570" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                          "input",
+                          {
+                            value: agent.args,
+                            onChange: (...a) => updateAgent(index, "args", extractInputValue(a[0])),
+                            style: inputStyle
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("view", { style: fieldRowStyle, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("text", { style: labelStyle, children: "\u74B0\u5883\u5909\u6570" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                          "input",
+                          {
+                            value: agent.env,
+                            onChange: (...a) => updateAgent(index, "env", extractInputValue(a[0])),
+                            style: { ...inputStyle, fontFamily: "monospace" }
+                          }
+                        )
+                      ] })
                     ] })
                   ]
                 },

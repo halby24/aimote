@@ -62,6 +62,7 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
           borderWidth: 1,
           borderColor: '#ccc',
           fontSize: 14,
+          color: '#111',
           backgroundColor: input.isDisabled ? '#f9f9f9' : '#fff',
         }}
       />
