@@ -19,7 +19,7 @@
   "dependencies": {
     "@acme/app-core": "workspace:*",
     "@acme/shared-types": "workspace:*",
-    "@acme/transport-relay": "workspace:*",
+    "@acme/transport-ws": "workspace:*",
     "@acme/ui-common": "workspace:*",
     "@reactunity/renderer": "^0.16.0"
   },

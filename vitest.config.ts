@@ -10,7 +10,7 @@ export default defineConfig({
             'packages/shared-types/src/**/*.test.ts',
             'packages/transport/src/**/*.test.ts',
             'packages/transport-acp-stdio/src/**/*.test.ts',
-            'packages/transport-relay/src/**/*.test.ts',
+            'packages/transport-ws/src/**/*.test.ts',
             'packages/host-api/src/**/*.test.ts',
             'packages/app-core/src/**/*.test.ts',
             'packages/ui-common/src/**/*.test.ts',

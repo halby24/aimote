@@ -1,6 +1,6 @@
 import { render } from '@reactunity/renderer';
 import { ChatController } from '@acme/app-core';
-import { RelayMockTransport } from '@acme/transport-relay';
+import { WsTransport } from '@acme/transport-ws';
 import { ChatScreen } from './components/ChatScreen.js';
 
 const Globals = (globalThis as Record<string, unknown>).Globals as
@@ -8,7 +8,7 @@ const Globals = (globalThis as Record<string, unknown>).Globals as
   | undefined;
 const relayUrl = (Globals?.relayUrl as string) ?? 'ws://localhost:3001';
 
-const transport = new RelayMockTransport({ url: relayUrl });
+const transport = new WsTransport({ url: relayUrl });
 const controller = new ChatController({ transport });
 
 render(<ChatScreen controller={controller} />);

@@ -18,7 +18,7 @@
     "@acme/app-core": "workspace:*",
     "@acme/host-api-tauri": "workspace:*",
     "@acme/shared-types": "workspace:*",
-    "@acme/transport-tauri-ipc": "workspace:*",
+    "@acme/transport-ws": "workspace:*",
     "@acme/ui-react-web": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -10,3 +10,4 @@ pub mod transport_handle;
 pub mod ws_protocol;
 pub mod agent_config_file;
 pub mod config_validator;
+pub mod ws_server;
