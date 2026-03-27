@@ -51,7 +51,7 @@ describe('MessageList', () => {
         ]}
       />,
     );
-    const cursor = container.querySelector('span[style*="animation"]');
+    const cursor = container.querySelector('span.animate-blink');
     expect(cursor).toBeInTheDocument();
   });
 

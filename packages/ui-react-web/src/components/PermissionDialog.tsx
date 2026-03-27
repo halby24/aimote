@@ -8,34 +8,20 @@ interface Props {
 
 export function PermissionDialog({ permission, onApprove }: Props): React.ReactElement {
   return (
-    <div
-      style={{
-        padding: '12px 16px',
-        borderTop: '1px solid #f59e0b',
-        backgroundColor: '#fffbeb',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-      }}
-    >
-      <div style={{ fontSize: '14px', fontWeight: 600, color: '#92400e' }}>
+    <div className="flex flex-col gap-2 border-t border-warning bg-[#fffbeb] px-4 py-3">
+      <div className="text-sm font-semibold text-[#92400e]">
         {permission.description}
       </div>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap gap-2">
         {permission.options.map((opt) => (
           <button
             key={opt.optionId}
             onClick={() => onApprove(permission.requestId, opt.optionId)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              backgroundColor:
-                opt.kind === 'allow_once' || opt.kind === 'allow_always' ? '#22c55e' : '#ef4444',
-              color: '#fff',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
+            className={`cursor-pointer rounded-md border border-[#d1d5db] px-3.5 py-1.5 text-[13px] text-white ${
+              opt.kind === 'allow_once' || opt.kind === 'allow_always'
+                ? 'bg-success'
+                : 'bg-error'
+            }`}
           >
             {opt.name}
           </button>

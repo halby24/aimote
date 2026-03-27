@@ -4,11 +4,11 @@ interface Props {
   toolCalls: readonly ToolCallViewModel[];
 }
 
-const statusColors: Record<string, string> = {
-  pending: '#f59e0b',
-  in_progress: '#3b82f6',
-  completed: '#22c55e',
-  failed: '#ef4444',
+const statusClasses: Record<string, string> = {
+  pending: 'bg-warning',
+  in_progress: 'bg-indigo-400',
+  completed: 'bg-success',
+  failed: 'bg-error',
 };
 
 export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
@@ -16,31 +16,15 @@ export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
   if (active.length === 0) return null;
 
   return (
-    <view
-      style={{
-        padding: 8,
-        paddingLeft: 16,
-        paddingRight: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        backgroundColor: '#fafafa',
-      }}
-    >
+    <view className="flex flex-col gap-1 border-b border-border bg-surface-subtle px-4 py-2">
       {active.map((tc) => (
-        <view key={tc.toolCallId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <view key={tc.toolCallId} className="flex flex-row items-center gap-2">
           <view
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: statusColors[tc.status ?? 'pending'] ?? '#94a3b8',
-              flexShrink: 0,
-            }}
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              statusClasses[tc.status ?? 'pending'] ?? 'bg-[#94a3b8]'
+            }`}
           />
-          <text style={{ color: '#555', fontSize: 13 }}>{tc.title}</text>
+          <text className="text-[13px] text-text-secondary">{tc.title}</text>
         </view>
       ))}
     </view>

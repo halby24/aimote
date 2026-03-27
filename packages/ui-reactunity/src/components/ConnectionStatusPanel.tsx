@@ -19,19 +19,10 @@ export function ConnectionStatusPanel({
   const label = statusLabels[connectionStatus] ?? connectionStatus;
 
   return (
-    <view
-      style={{
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-      }}
-    >
-      <text style={{ fontSize: 16, color: '#888' }}>{label}</text>
+    <view className="flex grow flex-col items-center justify-center gap-2">
+      <text className="text-base text-text-muted">{label}</text>
       {configError && (
-        <text style={{ fontSize: 13, color: '#c00', maxWidth: 400, textAlign: 'center' }}>
+        <text className="max-w-[400px] text-center text-[13px] text-[#c00]">
           {configError}
         </text>
       )}

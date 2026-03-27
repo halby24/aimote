@@ -14,46 +14,17 @@ export function PlanPanel({ plan }: Props): React.ReactElement | null {
   if (!plan.hasEntries) return null;
 
   return (
-    <view
-      style={{
-        padding: 8,
-        paddingLeft: 16,
-        paddingRight: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#e0e0e0',
-        backgroundColor: '#f8f9fa',
-      }}
-    >
-      <text style={{ fontWeight: '600', marginBottom: 4, color: '#555', fontSize: 13 }}>
-        Plan
-      </text>
+    <view className="border-t border-border bg-surface-muted px-4 py-2">
+      <text className="mb-1 text-[13px] font-semibold text-text-secondary">Plan</text>
       {plan.entries.map((entry, i) => (
         <view
           key={i}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingTop: 2,
-            paddingBottom: 2,
-          }}
+          className={`flex flex-row items-center gap-1.5 py-0.5 ${
+            entry.status === 'completed' ? 'text-success' : 'text-text'
+          }`}
         >
-          <text
-            style={{
-              fontSize: 13,
-              color: entry.status === 'completed' ? '#22c55e' : '#333',
-            }}
-          >
-            {statusIcon[entry.status] ?? '\u25cb'}
-          </text>
-          <text
-            style={{
-              fontSize: 13,
-              color: entry.status === 'completed' ? '#22c55e' : '#333',
-            }}
-          >
-            {entry.content}
-          </text>
+          <text className="text-[13px]">{statusIcon[entry.status] ?? '\u25cb'}</text>
+          <text className="text-[13px]">{entry.content}</text>
         </view>
       ))}
     </view>

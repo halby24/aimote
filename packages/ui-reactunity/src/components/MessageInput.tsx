@@ -15,7 +15,6 @@ interface Props {
 }
 
 export function MessageInput({ input, onSend }: Props): React.ReactElement {
-  // Track whether the button should be enabled (re-render only for this)
   const [hasText, setHasText] = useState(false);
   const textRef = useRef('');
 
@@ -33,54 +32,25 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
     setHasText(val.trim().length > 0);
   }, []);
 
+  const isDisabledOrEmpty = input.isDisabled || !hasText;
+
   return (
-    <view
-      style={{
-        padding: 12,
-        paddingLeft: 16,
-        paddingRight: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#e0e0e0',
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'flex-end',
-      }}
-    >
+    <view className="flex flex-row items-end gap-2 border-t border-border px-4 py-3">
       <input
         onChange={handleChange}
         onReturn={() => void handleSend()}
         disabled={input.isDisabled}
         placeholder="メッセージを入力... (Enter で送信)"
-        style={{
-          flexGrow: 1,
-          flexShrink: 1,
-          flexBasis: 0,
-          padding: 8,
-          paddingLeft: 12,
-          paddingRight: 12,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#ccc',
-          fontSize: 14,
-          color: '#111',
-          backgroundColor: input.isDisabled ? '#f9f9f9' : '#fff',
-        }}
+        className={`grow shrink basis-0 rounded-lg border border-[#ccc] px-3 py-2 text-sm text-[#111] ${
+          input.isDisabled ? 'bg-[#f9f9f9]' : 'bg-surface'
+        }`}
       />
       <button
         onClick={() => void handleSend()}
-        disabled={input.isDisabled || !hasText}
-        style={{
-          flexShrink: 0,
-          padding: 8,
-          paddingLeft: 20,
-          paddingRight: 20,
-          borderRadius: 8,
-          borderWidth: 0,
-          backgroundColor: input.isDisabled || !hasText ? '#ccc' : '#0078d4',
-          color: '#fff',
-          fontSize: 14,
-          height: 40,
-        }}
+        disabled={isDisabledOrEmpty}
+        className={`h-10 shrink-0 rounded-lg border-0 px-5 text-sm text-white ${
+          isDisabledOrEmpty ? 'bg-[#ccc]' : 'bg-primary'
+        }`}
       >
         送信
       </button>

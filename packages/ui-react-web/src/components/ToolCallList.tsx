@@ -5,11 +5,11 @@ interface Props {
   toolCalls: readonly ToolCallViewModel[];
 }
 
-const statusColors: Record<string, string> = {
-  pending: '#f59e0b',
-  in_progress: '#3b82f6',
-  completed: '#22c55e',
-  failed: '#ef4444',
+const statusClasses: Record<string, string> = {
+  pending: 'bg-warning',
+  in_progress: 'bg-indigo-400',
+  completed: 'bg-success',
+  failed: 'bg-error',
 };
 
 export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
@@ -17,30 +17,15 @@ export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
   if (active.length === 0) return null;
 
   return (
-    <div
-      style={{
-        padding: '8px 16px',
-        borderBottom: '1px solid #e0e0e0',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        fontSize: '13px',
-        backgroundColor: '#fafafa',
-      }}
-    >
+    <div className="flex flex-col gap-1 border-b border-border bg-surface-subtle px-4 py-2 text-[13px]">
       {active.map((tc) => (
-        <div key={tc.toolCallId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div key={tc.toolCallId} className="flex items-center gap-2">
           <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: statusColors[tc.status ?? 'pending'] ?? '#94a3b8',
-              display: 'inline-block',
-              flexShrink: 0,
-            }}
+            className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+              statusClasses[tc.status ?? 'pending'] ?? 'bg-[#94a3b8]'
+            }`}
           />
-          <span style={{ color: '#555' }}>{tc.title}</span>
+          <span className="text-text-secondary">{tc.title}</span>
         </div>
       ))}
     </div>

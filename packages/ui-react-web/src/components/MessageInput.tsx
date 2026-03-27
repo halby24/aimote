@@ -28,16 +28,10 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
     [handleSend],
   );
 
+  const isDisabledOrEmpty = input.isDisabled || !text.trim();
+
   return (
-    <div
-      style={{
-        padding: '12px 16px',
-        borderTop: '1px solid #e0e0e0',
-        display: 'flex',
-        gap: '8px',
-        alignItems: 'flex-end',
-      }}
-    >
+    <div className="flex items-end gap-2 border-t border-border px-4 py-3">
       <textarea
         ref={textareaRef}
         value={text}
@@ -46,32 +40,18 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
         disabled={input.isDisabled}
         placeholder="メッセージを入力... (Enter で送信)"
         rows={2}
-        style={{
-          flex: 1,
-          resize: 'none',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          border: '1px solid #ccc',
-          fontSize: '14px',
-          fontFamily: 'inherit',
-          outline: 'none',
-          backgroundColor: input.isDisabled ? '#f9f9f9' : '#fff',
-        }}
+        className={`flex-1 resize-none rounded-lg border border-[#ccc] px-3 py-2 font-[inherit] text-sm outline-none ${
+          input.isDisabled ? 'bg-[#f9f9f9]' : 'bg-surface'
+        }`}
       />
       <button
         onClick={() => void handleSend()}
-        disabled={input.isDisabled || !text.trim()}
-        style={{
-          padding: '8px 20px',
-          borderRadius: '8px',
-          border: 'none',
-          backgroundColor: input.isDisabled || !text.trim() ? '#ccc' : '#0078d4',
-          color: '#fff',
-          fontSize: '14px',
-          cursor: input.isDisabled || !text.trim() ? 'not-allowed' : 'pointer',
-          height: '40px',
-          whiteSpace: 'nowrap',
-        }}
+        disabled={isDisabledOrEmpty}
+        className={`h-10 whitespace-nowrap rounded-lg border-none px-5 text-sm text-white ${
+          isDisabledOrEmpty
+            ? 'cursor-not-allowed bg-[#ccc]'
+            : 'cursor-pointer bg-primary'
+        }`}
       >
         送信
       </button>

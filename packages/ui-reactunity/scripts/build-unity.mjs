@@ -2,9 +2,24 @@ import { build } from 'esbuild';
 import { readFile } from 'fs/promises';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..', '..', '..');
+const unityOutDir = resolve(
+  root,
+  'unity-packages',
+  'com.acme.aimote-ui',
+  'Runtime',
+  'Resources',
+  'react',
+);
+
+// Generate Tailwind CSS
+execSync(
+  `npx @tailwindcss/cli -i src/styles/input.css -o "${resolve(unityOutDir, 'styles.css')}" --minify`,
+  { cwd: resolve(__dirname, '..'), stdio: 'inherit' },
+);
 
 // @reactunity/renderer uses `import * as Reconciler from 'react-reconciler'`
 // then calls Reconciler(hostConfig). esbuild's CJS bundle wraps namespace imports

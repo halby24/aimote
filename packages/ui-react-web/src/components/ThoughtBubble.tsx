@@ -10,35 +10,15 @@ export function ThoughtBubble({ thought }: Props): React.ReactElement | null {
   if (!thought) return null;
 
   return (
-    <div
-      style={{
-        padding: '8px 16px',
-        borderBottom: '1px solid #e0e0e0',
-        backgroundColor: '#f0f4ff',
-        fontSize: '13px',
-      }}
-    >
+    <div className="border-b border-border bg-surface-accent px-4 py-2 text-[13px]">
       <div
         onClick={() => setCollapsed(!collapsed)}
-        style={{
-          cursor: 'pointer',
-          color: '#6366f1',
-          fontWeight: 600,
-          userSelect: 'none',
-        }}
+        className="cursor-pointer font-semibold text-indigo-500 select-none"
       >
         {collapsed ? '\u25b6 Thinking...' : '\u25bc Thinking...'}
       </div>
       {!collapsed && (
-        <div
-          style={{
-            marginTop: '4px',
-            color: '#555',
-            whiteSpace: 'pre-wrap',
-            maxHeight: '120px',
-            overflowY: 'auto',
-          }}
-        >
+        <div className="mt-1 max-h-[120px] overflow-y-auto whitespace-pre-wrap text-text-secondary">
           {thought}
         </div>
       )}

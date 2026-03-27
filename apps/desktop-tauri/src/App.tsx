@@ -13,14 +13,7 @@ export function App(): React.ReactElement {
   }, []);
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#fafafa',
-      }}
-    >
+    <div className="flex h-screen flex-col bg-surface-subtle">
       <ChatScreen controller={controller} />
     </div>
   );

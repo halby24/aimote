@@ -14,32 +14,6 @@ interface Props {
   onClose: () => void;
 }
 
-const fieldRowStyle = {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 8,
-} as const;
-
-const labelStyle = {
-  fontSize: 13,
-  color: '#555',
-  width: 60,
-  flexShrink: 0,
-} as const;
-
-const inputStyle = {
-  padding: 6,
-  paddingLeft: 8,
-  paddingRight: 8,
-  borderRadius: 4,
-  borderWidth: 1,
-  borderColor: '#d1d5db',
-  fontSize: 13,
-  flexGrow: 1,
-  color: '#111',
-  backgroundColor: '#fff',
-} as const;
-
 export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): React.ReactElement | null {
   const { viewModel, updateAgent, addAgent, removeAgent, setDefaultAgent, save } =
     useAgentSettings({ controller, isOpen, onClose });
@@ -47,48 +21,19 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
   if (!isOpen) return null;
 
   return (
-    <view
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <scroll
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: 8,
-          padding: 24,
-          width: 560,
-          maxHeight: '80%',
-        }}
-      >
-        <text style={{ marginBottom: 16, fontSize: 18, fontWeight: '600' }}>
+    <view className="absolute inset-0 flex items-center justify-center bg-overlay">
+      <scroll className="w-[560px] max-h-[80%] rounded-lg bg-surface p-6">
+        <text className="mb-4 text-lg font-semibold">
           エージェント設定
         </text>
 
         {viewModel.isLoading ? (
-          <text style={{ fontSize: 14, color: '#666' }}>読み込み中...</text>
+          <text className="text-sm text-[#666]">読み込み中...</text>
         ) : null}
 
         {viewModel.error && (
-          <view
-            style={{
-              padding: 8,
-              paddingLeft: 12,
-              paddingRight: 12,
-              backgroundColor: '#fef2f2',
-              borderRadius: 4,
-              marginBottom: 12,
-            }}
-          >
-            <text style={{ color: '#dc2626', fontSize: 13 }}>{viewModel.error}</text>
+          <view className="mb-3 rounded bg-[#fef2f2] px-3 py-2">
+            <text className="text-[13px] text-[#dc2626]">{viewModel.error}</text>
           </view>
         )}
 
@@ -97,86 +42,58 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
             {viewModel.agents.map((agent, index) => (
               <view
                 key={index}
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#e0e0e0',
-                  borderRadius: 6,
-                  padding: 12,
-                  marginBottom: 12,
-                }}
+                className="mb-3 rounded-md border border-border p-3"
               >
-                <view
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
+                <view className="mb-2 flex flex-row items-center gap-2">
                   <button
                     onClick={() => setDefaultAgent(agent.name)}
-                    style={{
-                      padding: 4,
-                      paddingLeft: 10,
-                      paddingRight: 10,
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      borderColor: agent.name === viewModel.defaultAgent ? '#3b82f6' : '#ccc',
-                      backgroundColor: agent.name === viewModel.defaultAgent ? '#dbeafe' : '#fff',
-                      fontSize: 12,
-                    }}
+                    className={`rounded border px-2.5 py-1 text-xs ${
+                      agent.name === viewModel.defaultAgent
+                        ? 'border-indigo-400 bg-[#dbeafe]'
+                        : 'border-[#ccc] bg-surface'
+                    }`}
                   >
                     {agent.name === viewModel.defaultAgent ? '\u25c9 デフォルト' : '\u25cb デフォルト'}
                   </button>
-                  <view style={{ flexGrow: 1 }} />
+                  <view className="grow" />
                   <button
                     onClick={() => removeAgent(index)}
-                    style={{
-                      padding: 2,
-                      paddingLeft: 8,
-                      paddingRight: 8,
-                      borderWidth: 1,
-                      borderColor: '#ccc',
-                      borderRadius: 4,
-                      backgroundColor: '#fff',
-                      fontSize: 12,
-                      color: '#dc2626',
-                    }}
+                    className="rounded border border-[#ccc] bg-surface px-2 py-0.5 text-xs text-[#dc2626]"
                   >
                     削除
                   </button>
                 </view>
-                <view style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <view style={fieldRowStyle}>
-                    <text style={labelStyle}>名前</text>
+                <view className="flex flex-col gap-1.5">
+                  <view className="flex flex-row items-center gap-2">
+                    <text className="w-[60px] shrink-0 text-[13px] text-text-secondary">名前</text>
                     <input
                       value={agent.name}
                       onChange={(...a: unknown[]) => updateAgent(index, 'name', extractInputValue(a[0]))}
-                      style={inputStyle}
+                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
                     />
                   </view>
-                  <view style={fieldRowStyle}>
-                    <text style={labelStyle}>コマンド</text>
+                  <view className="flex flex-row items-center gap-2">
+                    <text className="w-[60px] shrink-0 text-[13px] text-text-secondary">コマンド</text>
                     <input
                       value={agent.command}
                       onChange={(...a: unknown[]) => updateAgent(index, 'command', extractInputValue(a[0]))}
-                      style={inputStyle}
+                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
                     />
                   </view>
-                  <view style={fieldRowStyle}>
-                    <text style={labelStyle}>引数</text>
+                  <view className="flex flex-row items-center gap-2">
+                    <text className="w-[60px] shrink-0 text-[13px] text-text-secondary">引数</text>
                     <input
                       value={agent.args}
                       onChange={(...a: unknown[]) => updateAgent(index, 'args', extractInputValue(a[0]))}
-                      style={inputStyle}
+                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
                     />
                   </view>
-                  <view style={fieldRowStyle}>
-                    <text style={labelStyle}>環境変数</text>
+                  <view className="flex flex-row items-center gap-2">
+                    <text className="w-[60px] shrink-0 text-[13px] text-text-secondary">環境変数</text>
                     <input
                       value={agent.env}
                       onChange={(...a: unknown[]) => updateAgent(index, 'env', extractInputValue(a[0]))}
-                      style={{ ...inputStyle, fontFamily: 'monospace' }}
+                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 font-mono text-[13px] text-[#111]"
                     />
                   </view>
                 </view>
@@ -185,53 +102,24 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
 
             <button
               onClick={addAgent}
-              style={{
-                padding: 6,
-                paddingLeft: 14,
-                paddingRight: 14,
-                borderRadius: 6,
-                borderWidth: 1,
-                borderStyle: 'dashed',
-                borderColor: '#ccc',
-                backgroundColor: '#fafafa',
-                fontSize: 13,
-                width: '100%',
-                marginBottom: 16,
-              }}
+              className="mb-4 w-full rounded-md border border-dashed border-[#ccc] bg-surface-subtle py-1.5 text-[13px]"
             >
               + エージェント追加
             </button>
 
-            <view style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+            <view className="flex flex-row justify-end gap-2">
               <button
                 onClick={onClose}
-                style={{
-                  padding: 6,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: '#ccc',
-                  backgroundColor: '#fff',
-                  fontSize: 13,
-                }}
+                className="rounded-md border border-[#ccc] bg-surface px-4 py-1.5 text-[13px]"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => void save()}
                 disabled={viewModel.isSaving}
-                style={{
-                  padding: 6,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderRadius: 6,
-                  borderWidth: 0,
-                  backgroundColor: '#3b82f6',
-                  color: '#fff',
-                  fontSize: 13,
-                  opacity: viewModel.isSaving ? 0.6 : 1,
-                }}
+                className={`rounded-md border-0 bg-indigo-400 px-4 py-1.5 text-[13px] text-white ${
+                  viewModel.isSaving ? 'opacity-60' : ''
+                }`}
               >
                 {viewModel.isSaving ? '保存中...' : '保存'}
               </button>

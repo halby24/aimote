@@ -6,17 +6,9 @@ interface Props {
 
 export function MessageList({ messages }: Props): React.ReactElement {
   return (
-    <scroll
-      style={{
-        flexGrow: 1,
-        padding: 16,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
+    <scroll className="flex grow flex-col gap-3 p-4">
       {messages.length === 0 && (
-        <text style={{ color: '#888', textAlign: 'center', marginTop: 40 }}>
+        <text className="mt-10 text-center text-text-muted">
           メッセージを送信してください
         </text>
       )}
@@ -30,29 +22,18 @@ export function MessageList({ messages }: Props): React.ReactElement {
 function MessageBubble({ message }: { message: MessageViewModel }): React.ReactElement {
   const isUser = message.role === 'user';
   return (
-    <view
-      style={{
-        flexDirection: 'row',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-      }}
-    >
+    <view className={`flex flex-row ${isUser ? 'justify-end' : 'justify-start'}`}>
       <view
-        style={{
-          maxWidth: '70%',
-          padding: 10,
-          paddingLeft: 14,
-          paddingRight: 14,
-          borderRadius: 18,
-          backgroundColor: isUser ? '#0078d4' : '#f0f0f0',
-          color: isUser ? '#fff' : '#333',
-        }}
+        className={`max-w-[70%] rounded-[18px] px-3.5 py-2.5 ${
+          isUser ? 'bg-primary text-white' : 'bg-surface-neutral text-text'
+        }`}
       >
-        <text style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+        <text className="whitespace-pre-wrap text-sm leading-relaxed">
           {message.content}
           {message.isStreaming ? '\u258c' : ''}
         </text>
         {message.isError ? (
-          <text style={{ color: '#ff4444', marginLeft: 8, fontSize: 12 }}>
+          <text className="ml-2 text-xs text-[#ff4444]">
             {'\u26a0'} エラー
           </text>
         ) : null}

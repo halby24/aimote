@@ -13,10 +13,16 @@ interface Props {
   configError?: string | null;
 }
 
-const statusColorMap: Record<string, string> = {
-  ready: '#22c55e',
-  connecting: '#f59e0b',
-  error: '#ef4444',
+const statusColorClass: Record<string, string> = {
+  ready: 'text-success',
+  connecting: 'text-warning',
+  error: 'text-error',
+};
+
+const statusDotClass: Record<string, string> = {
+  ready: 'bg-success',
+  connecting: 'bg-warning',
+  error: 'bg-error',
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -35,92 +41,49 @@ export function SessionHeader({
   onSettingsClick,
   configError,
 }: Props): React.ReactElement {
-  const color = statusColorMap[connectionStatus] ?? '#94a3b8';
   const label = connectionStatus === 'error' && configError
     ? configError
     : (statusLabelMap[connectionStatus] ?? '\u672a\u63a5\u7d9a');
 
   return (
-    <header
-      style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid #e0e0e0',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        gap: '12px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '18px',
-            fontWeight: 600,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+    <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <h1 className="m-0 truncate text-lg font-semibold">
           {title ?? 'AI \u30c1\u30e3\u30c3\u30c8'}
         </h1>
         {currentMode && (
-          <span
-            style={{
-              fontSize: '11px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              backgroundColor: '#e0e7ff',
-              color: '#4338ca',
-            }}
-          >
+          <span className="rounded bg-[#e0e7ff] px-1.5 py-0.5 text-[11px] text-indigo-700">
             {currentMode}
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+      <div className="flex shrink-0 items-center gap-2">
         {usage && <UsageBar usage={usage} />}
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color }}>
+        <span
+          className={`flex items-center gap-1 text-xs ${
+            statusColorClass[connectionStatus] ?? 'text-[#94a3b8]'
+          }`}
+        >
           <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: color,
-              display: 'inline-block',
-            }}
+            className={`inline-block h-2 w-2 rounded-full ${
+              statusDotClass[connectionStatus] ?? 'bg-[#94a3b8]'
+            }`}
           />
           {label}
         </span>
         <button
           onClick={onSettingsClick}
           aria-label="設定"
-          style={{
-            padding: '4px 8px',
-            borderRadius: '4px',
-            border: '1px solid #ccc',
-            backgroundColor: '#fff',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: 1,
-          }}
+          className="cursor-pointer rounded border border-[#ccc] bg-surface px-2 py-1 text-base leading-none"
         >
           {'\u2699'}
         </button>
         {isTurnActive && (
           <button
             onClick={onCancel}
-            style={{
-              padding: '4px 10px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              backgroundColor: '#fff',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
+            className="cursor-pointer rounded border border-[#ccc] bg-surface px-2.5 py-1 text-xs"
           >
-            \u30ad\u30e3\u30f3\u30bb\u30eb
+            キャンセル
           </button>
         )}
       </div>

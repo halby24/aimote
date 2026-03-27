@@ -13,29 +13,24 @@ import type { CSSProperties, ReactNode } from 'react';
 
 type UssStyle = Partial<CSSProperties>;
 
+interface BaseProps {
+  style?: UssStyle;
+  className?: string;
+  children?: ReactNode;
+  key?: string | number;
+}
+
 declare module 'react' {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
-      view: {
-        style?: UssStyle;
-        children?: ReactNode;
+      view: BaseProps & {
         onClick?: () => void;
-        key?: string | number;
       };
-      text: {
-        style?: UssStyle;
-        children?: ReactNode;
-        key?: string | number;
-      };
-      scroll: {
-        style?: UssStyle;
-        children?: ReactNode;
-        key?: string | number;
-      };
+      text: BaseProps;
+      scroll: BaseProps;
       // Override DOM <input> with ReactUnity's UGUI InputComponent API
-      input: {
-        style?: UssStyle;
+      input: Omit<BaseProps, 'children'> & {
         value?: string;
         placeholder?: string;
         disabled?: boolean;
@@ -45,15 +40,11 @@ declare module 'react' {
         /** Fires when the user presses Enter / Return */
         onReturn?: (value: string, sender?: unknown) => void;
         onEndEdit?: (value: string, sender?: unknown) => void;
-        key?: string | number;
       };
       // Override DOM <button> with ReactUnity's UGUI ButtonComponent API
-      button: {
-        style?: UssStyle;
-        children?: ReactNode;
+      button: BaseProps & {
         onClick?: (sender?: unknown) => void;
         disabled?: boolean;
-        key?: string | number;
       };
     }
   }

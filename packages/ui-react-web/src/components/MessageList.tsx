@@ -7,18 +7,9 @@ interface Props {
 
 export function MessageList({ messages }: Props): React.ReactElement {
   return (
-    <div
-      style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-      }}
-    >
+    <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
       {messages.length === 0 && (
-        <p style={{ color: '#888', textAlign: 'center', marginTop: '40px' }}>
+        <p className="mt-10 text-center text-text-muted">
           メッセージを送信してください
         </p>
       )}
@@ -32,40 +23,20 @@ export function MessageList({ messages }: Props): React.ReactElement {
 function MessageBubble({ message }: { message: MessageViewModel }): React.ReactElement {
   const isUser = message.role === 'user';
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-      }}
-    >
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        style={{
-          maxWidth: '70%',
-          padding: '10px 14px',
-          borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-          backgroundColor: isUser ? '#0078d4' : '#f0f0f0',
-          color: isUser ? '#fff' : '#333',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
+        className={`max-w-[70%] whitespace-pre-wrap break-words px-3.5 py-2.5 text-sm leading-relaxed ${
+          isUser
+            ? 'rounded-t-[18px] rounded-bl-[18px] rounded-br-[4px] bg-primary text-white'
+            : 'rounded-t-[18px] rounded-br-[18px] rounded-bl-[4px] bg-surface-neutral text-text'
+        }`}
       >
         {message.content}
         {message.isStreaming && (
-          <span
-            style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '14px',
-              backgroundColor: 'currentColor',
-              marginLeft: '2px',
-              animation: 'blink 1s step-end infinite',
-            }}
-          />
+          <span className="ml-0.5 inline-block h-3.5 w-2 animate-blink bg-current" />
         )}
         {message.isError && (
-          <span style={{ color: '#ff4444', marginLeft: '8px', fontSize: '12px' }}>
+          <span className="ml-2 text-xs text-[#ff4444]">
             ⚠ エラー
           </span>
         )}

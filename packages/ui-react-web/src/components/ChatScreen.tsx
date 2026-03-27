@@ -31,14 +31,7 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
   }, [controller]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
+    <div className="flex h-full flex-col font-sans">
       <SessionHeader
         title={viewModel.title}
         currentMode={viewModel.currentMode}
@@ -74,12 +67,6 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
-      <style>{`
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

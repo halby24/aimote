@@ -17,44 +17,17 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
   return (
     <div
       data-testid="agent-settings-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-overlay"
     >
-      <div
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          padding: '24px',
-          width: '560px',
-          maxHeight: '80vh',
-          overflow: 'auto',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-        }}
-      >
-        <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>
+      <div className="w-[560px] max-h-[80vh] overflow-auto rounded-lg bg-surface p-6 shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
+        <h2 className="m-0 mb-4 text-lg font-semibold">
           エージェント設定
         </h2>
 
         {viewModel.isLoading && <p>読み込み中...</p>}
 
         {viewModel.error && (
-          <div
-            style={{
-              padding: '8px 12px',
-              backgroundColor: '#fef2f2',
-              color: '#dc2626',
-              borderRadius: '4px',
-              fontSize: '13px',
-              marginBottom: '12px',
-            }}
-          >
+          <div className="mb-3 rounded bg-[#fef2f2] px-3 py-2 text-[13px] text-[#dc2626]">
             {viewModel.error}
           </div>
         )}
@@ -64,15 +37,10 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
             {viewModel.agents.map((agent, index) => (
               <div
                 key={index}
-                style={{
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '6px',
-                  padding: '12px',
-                  marginBottom: '12px',
-                }}
+                className="mb-3 rounded-md border border-border p-3"
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+                <div className="mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-1 text-[13px]">
                     <input
                       type="radio"
                       name="defaultAgent"
@@ -81,48 +49,40 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     />
                     デフォルト
                   </label>
-                  <div style={{ flex: 1 }} />
+                  <div className="flex-1" />
                   <button
                     onClick={() => removeAgent(index)}
                     aria-label={`${agent.name || 'agent'} を削除`}
-                    style={{
-                      padding: '2px 8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      backgroundColor: '#fff',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      color: '#dc2626',
-                    }}
+                    className="cursor-pointer rounded border border-[#ccc] bg-surface px-2 py-0.5 text-xs text-[#dc2626]"
                   >
                     削除
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="flex flex-col gap-1.5">
                   <input
                     placeholder="名前"
                     value={agent.name}
                     onChange={(e) => updateAgent(index, 'name', e.target.value)}
-                    style={inputStyle}
+                    className="w-full rounded border border-[#d1d5db] px-2 py-1.5 text-[13px]"
                   />
                   <input
                     placeholder="コマンド"
                     value={agent.command}
                     onChange={(e) => updateAgent(index, 'command', e.target.value)}
-                    style={inputStyle}
+                    className="w-full rounded border border-[#d1d5db] px-2 py-1.5 text-[13px]"
                   />
                   <input
                     placeholder="引数 (カンマ区切り)"
                     value={agent.args}
                     onChange={(e) => updateAgent(index, 'args', e.target.value)}
-                    style={inputStyle}
+                    className="w-full rounded border border-[#d1d5db] px-2 py-1.5 text-[13px]"
                   />
                   <textarea
                     placeholder="環境変数 (KEY=VALUE、1行ずつ)"
                     value={agent.env}
                     onChange={(e) => updateAgent(index, 'env', e.target.value)}
                     rows={2}
-                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }}
+                    className="w-full resize-y rounded border border-[#d1d5db] px-2 py-1.5 font-mono text-[13px]"
                   />
                 </div>
               </div>
@@ -130,47 +90,24 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
 
             <button
               onClick={addAgent}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                border: '1px dashed #ccc',
-                backgroundColor: '#fafafa',
-                cursor: 'pointer',
-                fontSize: '13px',
-                width: '100%',
-                marginBottom: '16px',
-              }}
+              className="mb-4 w-full cursor-pointer rounded-md border border-dashed border-[#ccc] bg-surface-subtle py-1.5 text-[13px]"
             >
               + エージェント追加
             </button>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div className="flex justify-end gap-2">
               <button
                 onClick={onClose}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '6px',
-                  border: '1px solid #ccc',
-                  backgroundColor: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                }}
+                className="cursor-pointer rounded-md border border-[#ccc] bg-surface px-4 py-1.5 text-[13px]"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => void save()}
                 disabled={viewModel.isSaving}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#3b82f6',
-                  color: '#fff',
-                  cursor: viewModel.isSaving ? 'not-allowed' : 'pointer',
-                  fontSize: '13px',
-                  opacity: viewModel.isSaving ? 0.6 : 1,
-                }}
+                className={`rounded-md border-none bg-indigo-400 px-4 py-1.5 text-[13px] text-white ${
+                  viewModel.isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                }`}
               >
                 {viewModel.isSaving ? '保存中...' : '保存'}
               </button>
@@ -181,12 +118,3 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: '6px 8px',
-  borderRadius: '4px',
-  border: '1px solid #d1d5db',
-  fontSize: '13px',
-  width: '100%',
-  boxSizing: 'border-box',
-};

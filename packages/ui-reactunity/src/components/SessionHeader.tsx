@@ -12,10 +12,16 @@ interface Props {
   configError?: string | null;
 }
 
-const statusColorMap: Record<string, string> = {
-  ready: '#22c55e',
-  connecting: '#f59e0b',
-  error: '#ef4444',
+const statusColorClass: Record<string, string> = {
+  ready: 'text-success',
+  connecting: 'text-warning',
+  error: 'text-error',
+};
+
+const statusDotClass: Record<string, string> = {
+  ready: 'bg-success',
+  connecting: 'bg-warning',
+  error: 'bg-error',
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -34,95 +40,46 @@ export function SessionHeader({
   onSettingsClick,
   configError,
 }: Props): React.ReactElement {
-  const color = statusColorMap[connectionStatus] ?? '#94a3b8';
   const label = connectionStatus === 'error' && configError
     ? configError
     : (statusLabelMap[connectionStatus] ?? '未接続');
 
   return (
-    <view
-      style={{
-        padding: 12,
-        paddingLeft: 16,
-        paddingRight: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        gap: 12,
-      }}
-    >
-      <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <text
-          style={{
-            margin: 0,
-            fontSize: 18,
-            fontWeight: '600',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-          }}
-        >
+    <view className="flex flex-row items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
+      <view className="flex min-w-0 flex-row items-center gap-2">
+        <text className="overflow-hidden whitespace-nowrap text-lg font-semibold">
           {title ?? 'AI チャット'}
         </text>
         {currentMode && (
-          <text
-            style={{
-              fontSize: 11,
-              padding: 2,
-              paddingLeft: 6,
-              paddingRight: 6,
-              borderRadius: 4,
-              backgroundColor: '#e0e7ff',
-              color: '#4338ca',
-            }}
-          >
+          <text className="rounded bg-[#e0e7ff] px-1.5 py-0.5 text-[11px] text-indigo-700">
             {currentMode}
           </text>
         )}
       </view>
-      <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <view className="flex shrink-0 flex-row items-center gap-2">
         {usage && <UsageBar usage={usage} />}
-        <view style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <view
+          className={`flex flex-row items-center gap-1 ${
+            statusColorClass[connectionStatus] ?? 'text-[#94a3b8]'
+          }`}
+        >
           <view
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: color,
-            }}
+            className={`h-2 w-2 rounded-full ${
+              statusDotClass[connectionStatus] ?? 'bg-[#94a3b8]'
+            }`}
           />
-          <text style={{ fontSize: 12, color }}>{label}</text>
+          <text className="text-xs">{label}</text>
         </view>
         <button
           onClick={onSettingsClick}
-          style={{
-            padding: 4,
-            paddingLeft: 8,
-            paddingRight: 8,
-            borderRadius: 4,
-            borderWidth: 1,
-            borderColor: '#ccc',
-            backgroundColor: '#fff',
-            fontSize: 16,
-          }}
+          className="rounded border border-[#ccc] bg-surface px-2 py-1 text-base"
         >
           {'\u2699'}
         </button>
         {isTurnActive ? (
           <button
             onClick={onCancel}
-            style={{
-              padding: 4,
-              paddingLeft: 10,
-              paddingRight: 10,
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: '#ccc',
-              backgroundColor: '#fff',
-              fontSize: 12,
-            }}
+            className="rounded border border-[#ccc] bg-surface px-2.5 py-1 text-xs"
           >
             キャンセル
           </button>

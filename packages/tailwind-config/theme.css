@@ -1,0 +1,35 @@
+@theme {
+  --color-primary: #0078d4;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+
+  --color-indigo-700: #4338ca;
+  --color-indigo-500: #6366f1;
+  --color-indigo-400: #3b82f6;
+
+  --color-text: #333;
+  --color-text-secondary: #555;
+  --color-text-muted: #888;
+
+  --color-surface: #fff;
+  --color-surface-subtle: #fafafa;
+  --color-surface-muted: #f8f9fa;
+  --color-surface-accent: #f0f4ff;
+  --color-surface-neutral: #f0f0f0;
+
+  --color-border: #e0e0e0;
+  --color-overlay: rgba(0, 0, 0, 0.4);
+
+  --animate-blink: blink 1s step-end infinite;
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+}

@@ -5,30 +5,19 @@ interface Props {
 }
 
 export function UsageBar({ usage }: Props): React.ReactElement {
-  const barColor = usage.percentage > 80 ? '#ef4444' : usage.percentage > 50 ? '#f59e0b' : '#22c55e';
+  const barColor =
+    usage.percentage > 80 ? 'bg-error' : usage.percentage > 50 ? 'bg-warning' : 'bg-success';
 
   return (
-    <view style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <view
-        style={{
-          width: 80,
-          height: 6,
-          backgroundColor: '#e5e7eb',
-          borderRadius: 3,
-          overflow: 'hidden',
-        }}
-      >
+    <view className="flex flex-row items-center gap-2">
+      <view className="h-1.5 w-20 overflow-hidden rounded-sm bg-[#e5e7eb]">
         <view
-          style={{
-            width: `${Math.min(usage.percentage, 100)}%`,
-            height: '100%',
-            backgroundColor: barColor,
-            borderRadius: 3,
-          }}
+          className={`h-full rounded-sm ${barColor}`}
+          style={{ width: `${Math.min(usage.percentage, 100)}%` }}
         />
       </view>
-      <text style={{ fontSize: 12, color: '#666' }}>{usage.percentage}%</text>
-      {usage.costDisplay && <text style={{ fontSize: 12, color: '#888' }}>{usage.costDisplay}</text>}
+      <text className="text-xs text-[#666]">{usage.percentage}%</text>
+      {usage.costDisplay && <text className="text-xs text-text-muted">{usage.costDisplay}</text>}
     </view>
   );
 }

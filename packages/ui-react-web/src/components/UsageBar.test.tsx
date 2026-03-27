@@ -28,7 +28,7 @@ describe('UsageBar', () => {
       <UsageBar usage={createUsageViewModel({ percentage: 30 })} />,
     );
     const fillBar = container.querySelector('div > div > div > div') as HTMLElement;
-    expect(fillBar.style.backgroundColor).toBe('rgb(34, 197, 94)');
+    expect(fillBar.className).toContain('bg-success');
   });
 
   it('uses orange color for medium usage (51-80%)', () => {
@@ -36,7 +36,7 @@ describe('UsageBar', () => {
       <UsageBar usage={createUsageViewModel({ percentage: 65 })} />,
     );
     const fillBar = container.querySelector('div > div > div > div') as HTMLElement;
-    expect(fillBar.style.backgroundColor).toBe('rgb(245, 158, 11)');
+    expect(fillBar.className).toContain('bg-warning');
   });
 
   it('uses red color for high usage (>80%)', () => {
@@ -44,7 +44,7 @@ describe('UsageBar', () => {
       <UsageBar usage={createUsageViewModel({ percentage: 95 })} />,
     );
     const fillBar = container.querySelector('div > div > div > div') as HTMLElement;
-    expect(fillBar.style.backgroundColor).toBe('rgb(239, 68, 68)');
+    expect(fillBar.className).toContain('bg-error');
   });
 
   it('clamps bar width to 100%', () => {
