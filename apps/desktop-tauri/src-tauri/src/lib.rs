@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use aimote_backend::agent_config_file::{load_agents_file, AgentsFile};
 use aimote_backend::ws_server::{self, WsServerConfig};
-use tauri::Manager;
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -51,11 +51,16 @@ pub fn run() {
             let port = actual_addr.port();
             eprintln!("WebSocket server started on port {port}");
 
-            // Inject the port into the webview so the frontend can connect
-            let webview_window = app.get_webview_window("main").expect("no main window");
-            webview_window
-                .eval(&format!("window.__AIMOTE_WS_PORT__ = {port};"))
-                .expect("failed to inject WS port");
+            // Create the main window with initialization_script so the WS port
+            // is available before any page JavaScript executes.
+            // (tauri.conf.json has "windows": [] to prevent auto-creation)
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                .title("aimote")
+                .inner_size(1024.0, 768.0)
+                .initialization_script(&format!(
+                    "Object.defineProperty(window, '__AIMOTE_WS_PORT__', {{ value: {port}, writable: false }});"
+                ))
+                .build()?;
 
             Ok(())
         })

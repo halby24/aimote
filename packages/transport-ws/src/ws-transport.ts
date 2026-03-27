@@ -187,7 +187,9 @@ export class WsTransport implements AgentTransport {
     }
   }
 
-  private sendRequest(message: Record<string, unknown>): Promise<unknown> {
+  private async sendRequest(message: Record<string, unknown>): Promise<unknown> {
+    await this.ensureOpen();
+
     return new Promise((resolve, reject) => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         reject(new ConnectionError('WebSocket not connected'));
