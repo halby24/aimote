@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "@acme/tailwind-config/theme.css";
 
+@source "../../../packages/ui-react-web/src";
+
 @layer base {
   html,
   body,
