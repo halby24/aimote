@@ -19,7 +19,21 @@
   --color-surface-neutral: #f0f0f0;
 
   --color-border: #e0e0e0;
+  --color-border-input: #d1d5db;
   --color-overlay: rgba(0, 0, 0, 0.4);
+
+  --color-surface-input: #fff;
+  --color-surface-input-disabled: #f9f9f9;
+  --color-surface-warning-subtle: #fffbeb;
+  --color-surface-error-subtle: #fef2f2;
+  --color-surface-indigo-subtle: #e0e7ff;
+  --color-bar-track: #e5e7eb;
+
+  --color-text-input: #111;
+  --color-text-warning-emphasis: #92400e;
+
+  --color-status-idle: #94a3b8;
+  --color-btn-disabled: #ccc;
 
   --animate-blink: blink 1s step-end infinite;
 

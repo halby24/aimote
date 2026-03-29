@@ -21,7 +21,7 @@ export function ToolCallList({ toolCalls }: Props): React.ReactElement | null {
         <view key={tc.toolCallId} className="flex flex-row items-center gap-2">
           <view
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-              statusClasses[tc.status ?? 'pending'] ?? 'bg-[#94a3b8]'
+              statusClasses[tc.status ?? 'pending'] ?? 'bg-status-idle'
             }`}
           />
           <text className="text-[13px] text-text-secondary">{tc.title}</text>

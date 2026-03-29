@@ -23,17 +23,17 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
   return (
     <view className="absolute inset-0 flex items-center justify-center bg-overlay">
       <scroll className="w-[560px] max-h-[80%] rounded-lg bg-surface p-6">
-        <text className="mb-4 text-lg font-semibold">
+        <text className="mb-4 text-lg font-semibold text-text">
           エージェント設定
         </text>
 
         {viewModel.isLoading ? (
-          <text className="text-sm text-[#666]">読み込み中...</text>
+          <text className="text-sm text-text-muted">読み込み中...</text>
         ) : null}
 
         {viewModel.error && (
-          <view className="mb-3 rounded bg-[#fef2f2] px-3 py-2">
-            <text className="text-[13px] text-[#dc2626]">{viewModel.error}</text>
+          <view className="mb-3 rounded bg-surface-error-subtle px-3 py-2">
+            <text className="text-[13px] text-error">{viewModel.error}</text>
           </view>
         )}
 
@@ -49,8 +49,8 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     onClick={() => setDefaultAgent(agent.name)}
                     className={`rounded border px-2.5 py-1 text-xs ${
                       agent.name === viewModel.defaultAgent
-                        ? 'border-indigo-400 bg-[#dbeafe]'
-                        : 'border-[#ccc] bg-surface'
+                        ? 'border-indigo-400 bg-surface-indigo-subtle text-indigo-700'
+                        : 'border-border bg-surface text-text'
                     }`}
                   >
                     {agent.name === viewModel.defaultAgent ? '\u25c9 デフォルト' : '\u25cb デフォルト'}
@@ -58,7 +58,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                   <view className="grow" />
                   <button
                     onClick={() => removeAgent(index)}
-                    className="rounded border border-[#ccc] bg-surface px-2 py-0.5 text-xs text-[#dc2626]"
+                    className="rounded border border-border bg-surface px-2 py-0.5 text-xs text-error"
                   >
                     削除
                   </button>
@@ -69,7 +69,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     <input
                       value={agent.name}
                       onChange={(...a: unknown[]) => updateAgent(index, 'name', extractInputValue(a[0]))}
-                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
+                      className="grow rounded border border-border-input bg-surface-input px-2 py-1.5 text-[13px] text-text-input"
                     />
                   </view>
                   <view className="flex flex-row items-center gap-2">
@@ -77,7 +77,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     <input
                       value={agent.command}
                       onChange={(...a: unknown[]) => updateAgent(index, 'command', extractInputValue(a[0]))}
-                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
+                      className="grow rounded border border-border-input bg-surface-input px-2 py-1.5 text-[13px] text-text-input"
                     />
                   </view>
                   <view className="flex flex-row items-center gap-2">
@@ -85,7 +85,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     <input
                       value={agent.args}
                       onChange={(...a: unknown[]) => updateAgent(index, 'args', extractInputValue(a[0]))}
-                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 text-[13px] text-[#111]"
+                      className="grow rounded border border-border-input bg-surface-input px-2 py-1.5 text-[13px] text-text-input"
                     />
                   </view>
                   <view className="flex flex-row items-center gap-2">
@@ -93,7 +93,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
                     <input
                       value={agent.env}
                       onChange={(...a: unknown[]) => updateAgent(index, 'env', extractInputValue(a[0]))}
-                      className="grow rounded border border-[#d1d5db] bg-surface px-2 py-1.5 font-mono text-[13px] text-[#111]"
+                      className="grow rounded border border-border-input bg-surface-input px-2 py-1.5 font-mono text-[13px] text-text-input"
                     />
                   </view>
                 </view>
@@ -102,7 +102,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
 
             <button
               onClick={addAgent}
-              className="mb-4 w-full rounded-md border border-dashed border-[#ccc] bg-surface-subtle py-1.5 text-[13px]"
+              className="mb-4 w-full rounded-md border border-dashed border-border bg-surface-subtle py-1.5 text-[13px] text-text-secondary"
             >
               + エージェント追加
             </button>
@@ -110,7 +110,7 @@ export function AgentSettingsPanel({ controller, isOpen, onClose }: Props): Reac
             <view className="flex flex-row justify-end gap-2">
               <button
                 onClick={onClose}
-                className="rounded-md border border-[#ccc] bg-surface px-4 py-1.5 text-[13px]"
+                className="rounded-md border border-border bg-surface px-4 py-1.5 text-[13px] text-text"
               >
                 キャンセル
               </button>

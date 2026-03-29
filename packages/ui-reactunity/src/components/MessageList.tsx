@@ -6,7 +6,7 @@ interface Props {
 
 export function MessageList({ messages }: Props): React.ReactElement {
   return (
-    <scroll className="flex grow flex-col gap-3 p-4">
+    <scroll className="flex grow flex-col gap-3 bg-surface-subtle p-4">
       {messages.length === 0 && (
         <text className="mt-10 text-center text-text-muted">
           メッセージを送信してください
@@ -33,7 +33,7 @@ function MessageBubble({ message }: { message: MessageViewModel }): React.ReactE
           {message.isStreaming ? '\u258c' : ''}
         </text>
         {message.isError ? (
-          <text className="ml-2 text-xs text-[#ff4444]">
+          <text className="ml-2 text-xs text-error">
             {'\u26a0'} エラー
           </text>
         ) : null}

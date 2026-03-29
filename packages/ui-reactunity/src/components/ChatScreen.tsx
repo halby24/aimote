@@ -31,7 +31,7 @@ export function ChatScreen({ controller }: Props): React.ReactElement {
   }, [controller]);
 
   return (
-    <view className="flex h-full flex-col">
+    <view className="flex h-full flex-col bg-surface text-text">
       <SessionHeader
         title={viewModel.title}
         currentMode={viewModel.currentMode}

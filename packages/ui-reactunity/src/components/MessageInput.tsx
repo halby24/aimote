@@ -35,21 +35,21 @@ export function MessageInput({ input, onSend }: Props): React.ReactElement {
   const isDisabledOrEmpty = input.isDisabled || !hasText;
 
   return (
-    <view className="flex flex-row items-end gap-2 border-t border-border px-4 py-3">
+    <view className="flex flex-row items-end gap-2 border-t border-border bg-surface px-4 py-3">
       <input
         onChange={handleChange}
         onReturn={() => void handleSend()}
         disabled={input.isDisabled}
         placeholder="メッセージを入力... (Enter で送信)"
-        className={`grow shrink basis-0 rounded-lg border border-[#ccc] px-3 py-2 text-sm text-[#111] ${
-          input.isDisabled ? 'bg-[#f9f9f9]' : 'bg-surface'
+        className={`grow shrink basis-0 rounded-lg border border-border-input px-3 py-2 text-sm text-text-input ${
+          input.isDisabled ? 'bg-surface-input-disabled' : 'bg-surface-input'
         }`}
       />
       <button
         onClick={() => void handleSend()}
         disabled={isDisabledOrEmpty}
         className={`h-10 shrink-0 rounded-lg border-0 px-5 text-sm text-white ${
-          isDisabledOrEmpty ? 'bg-[#ccc]' : 'bg-primary'
+          isDisabledOrEmpty ? 'bg-btn-disabled' : 'bg-primary'
         }`}
       >
         送信

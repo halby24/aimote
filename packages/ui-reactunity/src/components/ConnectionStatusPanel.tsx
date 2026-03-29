@@ -19,10 +19,10 @@ export function ConnectionStatusPanel({
   const label = statusLabels[connectionStatus] ?? connectionStatus;
 
   return (
-    <view className="flex grow flex-col items-center justify-center gap-2">
+    <view className="flex grow flex-col items-center justify-center gap-2 bg-surface text-text">
       <text className="text-base text-text-muted">{label}</text>
       {configError && (
-        <text className="max-w-[400px] text-center text-[13px] text-[#c00]">
+        <text className="max-w-[400px] text-center text-[13px] text-error">
           {configError}
         </text>
       )}

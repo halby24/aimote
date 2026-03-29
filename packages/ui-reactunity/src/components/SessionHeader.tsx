@@ -47,11 +47,11 @@ export function SessionHeader({
   return (
     <view className="flex flex-row items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
       <view className="flex min-w-0 flex-row items-center gap-2">
-        <text className="overflow-hidden whitespace-nowrap text-lg font-semibold">
+        <text className="overflow-hidden whitespace-nowrap text-lg font-semibold text-text">
           {title ?? 'AI チャット'}
         </text>
         {currentMode && (
-          <text className="rounded bg-[#e0e7ff] px-1.5 py-0.5 text-[11px] text-indigo-700">
+          <text className="rounded bg-surface-indigo-subtle px-1.5 py-0.5 text-[11px] text-indigo-700">
             {currentMode}
           </text>
         )}
@@ -60,26 +60,26 @@ export function SessionHeader({
         {usage && <UsageBar usage={usage} />}
         <view
           className={`flex flex-row items-center gap-1 ${
-            statusColorClass[connectionStatus] ?? 'text-[#94a3b8]'
+            statusColorClass[connectionStatus] ?? 'text-status-idle'
           }`}
         >
           <view
             className={`h-2 w-2 rounded-full ${
-              statusDotClass[connectionStatus] ?? 'bg-[#94a3b8]'
+              statusDotClass[connectionStatus] ?? 'bg-status-idle'
             }`}
           />
-          <text className="text-xs">{label}</text>
+          <text className="text-xs text-text-secondary">{label}</text>
         </view>
         <button
           onClick={onSettingsClick}
-          className="rounded border border-[#ccc] bg-surface px-2 py-1 text-base"
+          className="rounded border border-border bg-surface px-2 py-1 text-base text-text"
         >
           {'\u2699'}
         </button>
         {isTurnActive ? (
           <button
             onClick={onCancel}
-            className="rounded border border-[#ccc] bg-surface px-2.5 py-1 text-xs"
+            className="rounded border border-border bg-surface px-2.5 py-1 text-xs text-text"
           >
             キャンセル
           </button>
