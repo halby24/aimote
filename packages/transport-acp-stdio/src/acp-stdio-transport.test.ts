@@ -26,7 +26,7 @@ function createInMemoryStreamPair(): { clientStream: Stream; agentStream: Stream
 
 function collectEvents(transport: AcpStdioTransport): AgentEvent[] {
   const events: AgentEvent[] = [];
-  transport.subscribe((e) => events.push(e));
+  transport.events$.subscribe((e) => events.push(e));
   return events;
 }
 
@@ -91,13 +91,13 @@ describe('AcpStdioTransport', () => {
     });
   });
 
-  describe('subscribe', () => {
-    it('returns unsubscribe function', () => {
+  describe('events$', () => {
+    it('provides subscribable observable', () => {
       const registry = createAgentRegistry();
       const transport = new AcpStdioTransport({ agentName: 'test', registry });
-      const unsub = transport.subscribe(() => {});
-      expect(typeof unsub).toBe('function');
-      unsub();
+      const sub = transport.events$.subscribe(() => {});
+      expect(typeof sub.unsubscribe).toBe('function');
+      sub.unsubscribe();
     });
   });
 

@@ -5,7 +5,7 @@ import type {
   RequestPermissionResponse,
 } from '@agentclientprotocol/sdk/dist/acp.js';
 
-type Emitter = { emit(event: AgentEvent): void };
+type EventSink = { next(event: AgentEvent): void };
 
 interface PendingRequest {
   resolve: (response: RequestPermissionResponse) => void;
@@ -17,7 +17,7 @@ export class PermissionResolver {
 
   request(
     params: RequestPermissionRequest,
-    emitter: Emitter,
+    sink: EventSink,
   ): Promise<RequestPermissionResponse> {
     const requestId = `perm-${++this.requestCounter}`;
     const options: PermissionOption[] = params.options.map((o) => ({
@@ -37,7 +37,7 @@ export class PermissionResolver {
           }
         : undefined;
 
-      emitter.emit({
+      sink.next({
         type: 'permissionRequested',
         sessionId: makeSessionId(params.sessionId),
         requestId: makeRequestId(requestId),

@@ -1,6 +1,7 @@
+import type { Observable } from 'rxjs';
 import type { AgentEvent, AgentsFile, ConfigValidationResult } from '@acme/shared-types';
 import type { AgentTransport, SessionListItem } from '@acme/transport';
-import { EventEmitter, ConnectionError } from '@acme/transport';
+import { createEventBus, ConnectionError } from '@acme/transport';
 
 export interface WsTransportOptions {
   /** WebSocket server URL, e.g. "ws://localhost:3001" */
@@ -26,11 +27,13 @@ interface PendingRequest {
  *   - Replies: has `reqId` field → resolves the matching pending request.
  */
 export class WsTransport implements AgentTransport {
-  private readonly emitter = new EventEmitter();
+  private readonly bus = createEventBus();
+  readonly events$: Observable<AgentEvent> = this.bus.events$;
   private readonly pending = new Map<string, PendingRequest>();
   private readonly url: string;
   private readonly timeout: number;
   private ws: WebSocket | null = null;
+  private connectingPromise: Promise<void> | null = null;
   private reqCounter = 0;
 
   constructor(options: WsTransportOptions) {
@@ -44,9 +47,15 @@ export class WsTransport implements AgentTransport {
   }
 
   async disconnect(): Promise<void> {
-    try {
-      await this.sendRequest({ type: 'disconnect' });
-    } finally {
+    // Only send the disconnect message if we actually have an open connection.
+    // Avoids ensureOpen() opening a NEW socket just to send 'disconnect'.
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        await this.sendRequest({ type: 'disconnect' });
+      } finally {
+        this.close();
+      }
+    } else {
       this.close();
     }
   }
@@ -72,10 +81,6 @@ export class WsTransport implements AgentTransport {
 
   async approve(requestId: string, optionId: string): Promise<void> {
     await this.sendRequest({ type: 'approve', requestId, optionId });
-  }
-
-  subscribe(listener: (event: AgentEvent) => void): () => void {
-    return this.emitter.subscribe(listener);
   }
 
   async validateConfig(): Promise<ConfigValidationResult> {
@@ -115,20 +120,27 @@ export class WsTransport implements AgentTransport {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       return Promise.resolve();
     }
+    // Deduplicate concurrent ensureOpen calls — return the same promise
+    if (this.connectingPromise) {
+      return this.connectingPromise;
+    }
 
-    return new Promise<void>((resolve, reject) => {
+    this.connectingPromise = new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(this.url);
 
       ws.onopen = () => {
         this.ws = ws;
+        this.connectingPromise = null;
         resolve();
       };
 
       ws.onerror = () => {
+        this.connectingPromise = null;
         reject(new ConnectionError('WebSocket connection failed'));
       };
 
       ws.onclose = () => {
+        this.connectingPromise = null;
         this.handleClose();
       };
 
@@ -136,6 +148,7 @@ export class WsTransport implements AgentTransport {
         this.handleMessage(String(event.data));
       };
     });
+    return this.connectingPromise;
   }
 
   private handleMessage(data: string): void {
@@ -165,7 +178,7 @@ export class WsTransport implements AgentTransport {
       }
     } else {
       // Push event — forward to subscribers
-      this.emitter.emit(parsed as unknown as AgentEvent);
+      this.bus.subject.next(parsed as unknown as AgentEvent);
     }
   }
 
@@ -180,6 +193,7 @@ export class WsTransport implements AgentTransport {
   }
 
   private close(): void {
+    this.connectingPromise = null;
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.close();

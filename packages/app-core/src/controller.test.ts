@@ -1,20 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Subject } from 'rxjs';
+import { share } from 'rxjs/operators';
 import { ChatController } from './controller.js';
 import type { AgentTransport } from '@acme/transport';
-import { EventEmitter } from '@acme/transport';
 import type { AgentEvent } from '@acme/shared-types';
 
 function createMockTransport(): AgentTransport & { emit(e: AgentEvent): void } {
-  const emitter = new EventEmitter();
+  const subject = new Subject<AgentEvent>();
   return {
+    events$: subject.asObservable().pipe(share()),
     connect: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn().mockResolvedValue(undefined),
     startSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
     sendUserMessage: vi.fn().mockResolvedValue(undefined),
     cancel: vi.fn().mockResolvedValue(undefined),
     approve: vi.fn().mockResolvedValue(undefined),
-    subscribe: (listener) => emitter.subscribe(listener),
-    emit: (e) => emitter.emit(e),
+    emit: (e) => subject.next(e),
   };
 }
 

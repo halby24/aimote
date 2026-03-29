@@ -1,5 +1,7 @@
+import type { Observable } from 'rxjs';
 import type { AgentTransport } from '@acme/transport';
-import { EventEmitter } from '@acme/transport';
+import { createEventBus } from '@acme/transport';
+import type { AgentEvent } from '@acme/shared-types';
 import { makeSessionId, makeMessageId } from '@acme/shared-types';
 
 const MOCK_RESPONSES = [
@@ -10,22 +12,22 @@ const MOCK_RESPONSES = [
 ];
 
 export class AcpStdioMockTransport implements AgentTransport {
-  private readonly emitter = new EventEmitter();
+  private bus = createEventBus();
+  readonly events$: Observable<AgentEvent> = this.bus.events$;
   private connected = false;
   private sessionCounter = 0;
   private messageCounter = 0;
 
   async connect(): Promise<void> {
-    this.emitter.emit({ type: 'connectionStatus', status: 'connecting' });
+    this.bus.subject.next({ type: 'connectionStatus', status: 'connecting' });
     await delay(100);
     this.connected = true;
-    this.emitter.emit({ type: 'connectionStatus', status: 'ready' });
+    this.bus.subject.next({ type: 'connectionStatus', status: 'ready' });
   }
 
   async disconnect(): Promise<void> {
     this.connected = false;
-    this.emitter.emit({ type: 'connectionStatus', status: 'disconnected' });
-    this.emitter.clear();
+    this.bus.subject.next({ type: 'connectionStatus', status: 'disconnected' });
   }
 
   async startSession(input?: { workspace?: string }): Promise<{ sessionId: string }> {
@@ -33,7 +35,7 @@ export class AcpStdioMockTransport implements AgentTransport {
     void input;
     const sessionId = makeSessionId(`session-${++this.sessionCounter}`);
     await delay(50);
-    this.emitter.emit({ type: 'sessionStarted', sessionId });
+    this.bus.subject.next({ type: 'sessionStarted', sessionId });
     return { sessionId };
   }
 
@@ -42,7 +44,7 @@ export class AcpStdioMockTransport implements AgentTransport {
     void text;
     const messageId = makeMessageId(`msg-${++this.messageCounter}`);
     const response = MOCK_RESPONSES[this.messageCounter % MOCK_RESPONSES.length] ?? MOCK_RESPONSES[0]!;
-    
+
     // Simulate streaming response
     void this.streamResponse(sessionId, messageId, response);
   }
@@ -51,7 +53,7 @@ export class AcpStdioMockTransport implements AgentTransport {
     const chunks = splitIntoChunks(text, 3);
     for (const chunk of chunks) {
       await delay(80);
-      this.emitter.emit({
+      this.bus.subject.next({
         type: 'messageDelta',
         sessionId: makeSessionId(sessionId),
         messageId: makeMessageId(messageId),
@@ -59,7 +61,7 @@ export class AcpStdioMockTransport implements AgentTransport {
       });
     }
     await delay(50);
-    this.emitter.emit({
+    this.bus.subject.next({
       type: 'messageCompleted',
       sessionId: makeSessionId(sessionId),
       messageId: makeMessageId(messageId),
@@ -75,10 +77,6 @@ export class AcpStdioMockTransport implements AgentTransport {
     void requestId;
     void optionId;
     // Mock: no-op
-  }
-
-  subscribe(listener: (event: import('@acme/shared-types').AgentEvent) => void): () => void {
-    return this.emitter.subscribe(listener);
   }
 }
 

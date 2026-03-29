@@ -71,23 +71,16 @@ describe('useChat', () => {
     expect(controller.approve).toHaveBeenCalledWith('req-1', 'allow');
   });
 
-  it('subscribes to store changes', () => {
-    const controller = createMockController();
-    renderHook(() => useChat({ controller }));
-
-    expect(controller.subscribe).toHaveBeenCalledOnce();
-  });
-
-  it('polls connection status', async () => {
+  it('reacts to connection status changes via observable', async () => {
     const controller = createMockController({ connectionStatus: 'connecting' });
     const { result } = renderHook(() => useChat({ controller }));
 
     expect(result.current.viewModel.connectionStatus).toBe('connecting');
 
-    controller.getConnectionStatus.mockReturnValue('ready');
+    act(() => {
+      (controller as unknown as { connectionStatus$: { next: (v: string) => void } }).connectionStatus$.next('ready');
+    });
 
-    await waitFor(() => {
-      expect(result.current.viewModel.connectionStatus).toBe('ready');
-    }, { timeout: 1000 });
+    expect(result.current.viewModel.connectionStatus).toBe('ready');
   });
 });

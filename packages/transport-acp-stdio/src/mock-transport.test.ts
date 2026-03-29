@@ -14,7 +14,7 @@ describe('AcpStdioMockTransport', () => {
     it('emits connecting then ready', async () => {
       const transport = new AcpStdioMockTransport();
       const statuses: string[] = [];
-      transport.subscribe((e) => {
+      transport.events$.subscribe((e) => {
         if (e.type === 'connectionStatus') statuses.push(e.status);
       });
       const p = transport.connect();
@@ -32,7 +32,7 @@ describe('AcpStdioMockTransport', () => {
       await p;
 
       const statuses: string[] = [];
-      transport.subscribe((e) => {
+      transport.events$.subscribe((e) => {
         if (e.type === 'connectionStatus') statuses.push(e.status);
       });
       await transport.disconnect();
@@ -71,7 +71,7 @@ describe('AcpStdioMockTransport', () => {
       await p;
 
       let sessionStarted = false;
-      transport.subscribe((e) => {
+      transport.events$.subscribe((e) => {
         if (e.type === 'sessionStarted') sessionStarted = true;
       });
       const sp = transport.startSession();
@@ -94,7 +94,7 @@ describe('AcpStdioMockTransport', () => {
 
       const deltas: string[] = [];
       let completed = false;
-      transport.subscribe((e) => {
+      transport.events$.subscribe((e) => {
         if (e.type === 'messageDelta') deltas.push(e.delta);
         if (e.type === 'messageCompleted') completed = true;
       });
@@ -113,12 +113,12 @@ describe('AcpStdioMockTransport', () => {
     });
   });
 
-  describe('subscribe', () => {
-    it('returned unsubscribe stops event delivery', async () => {
+  describe('events$', () => {
+    it('unsubscribe stops event delivery', async () => {
       const transport = new AcpStdioMockTransport();
       const listener = vi.fn();
-      const unsub = transport.subscribe(listener);
-      unsub();
+      const sub = transport.events$.subscribe(listener);
+      sub.unsubscribe();
       const p = transport.connect();
       await vi.runAllTimersAsync();
       await p;

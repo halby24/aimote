@@ -96,6 +96,9 @@ importers:
       '@acme/transport':
         specifier: workspace:*
         version: link:../transport
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
     devDependencies:
       '@types/node':
         specifier: ^22.13.10
@@ -152,6 +155,9 @@ importers:
       '@acme/shared-types':
         specifier: workspace:*
         version: link:../shared-types
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
     devDependencies:
       typescript:
         specifier: '*'
@@ -171,6 +177,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: ^0.16.1
         version: 0.16.1(zod@4.3.6)
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
       zod:
         specifier: ^3.25.0 || ^4.0.0
         version: 4.3.6
@@ -193,6 +202,9 @@ importers:
       '@acme/transport':
         specifier: workspace:*
         version: link:../transport
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
     devDependencies:
       '@types/node':
         specifier: ^22.13.10
@@ -215,6 +227,9 @@ importers:
       react:
         specifier: ^18.0.0
         version: 18.3.1
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
     devDependencies:
       '@types/react':
         specifier: ^18.3.18
@@ -262,6 +277,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      rxjs:
+        specifier: '7.8'
+        version: 7.8.2
       typescript:
         specifier: '*'
         version: 5.9.3
@@ -2052,6 +2070,9 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
+  rxjs@7.8.2:
+    resolution: {integrity: sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==}
+
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
     engines: {node: '>=v12.22.7'}
@@ -2156,6 +2177,9 @@ packages:
     engines: {node: '>=18.12'}
     peerDependencies:
       typescript: '>=4.8.4'
+
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
   turbo-darwin-64@2.8.17:
     resolution: {integrity: sha512-ZFkv2hv7zHpAPEXBF6ouRRXshllOavYc+jjcrYyVHvxVTTwJWsBZwJ/gpPzmOKGvkSjsEyDO5V6aqqtZzwVF+Q==}
@@ -3909,6 +3933,10 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.59.0
       fsevents: 2.3.3
 
+  rxjs@7.8.2:
+    dependencies:
+      tslib: 2.8.1
+
   saxes@6.0.0:
     dependencies:
       xmlchars: 2.2.0
@@ -3987,6 +4015,8 @@ snapshots:
   ts-api-utils@2.4.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
+
+  tslib@2.8.1: {}
 
   turbo-darwin-64@2.8.17:
     optional: true

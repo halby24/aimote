@@ -1,57 +1,58 @@
 import { describe, it, expect, vi } from 'vitest';
-import { EventEmitter } from './utils.js';
+import { createEventBus } from './utils.js';
 
-describe('EventEmitter', () => {
-  it('calls subscribed listener on emit', () => {
-    const emitter = new EventEmitter();
+describe('createEventBus', () => {
+  it('delivers events to subscribers', () => {
+    const bus = createEventBus();
     const listener = vi.fn();
-    emitter.subscribe(listener);
+    bus.events$.subscribe(listener);
     const event = { type: 'connectionStatus' as const, status: 'ready' as const };
-    emitter.emit(event);
+    bus.subject.next(event);
     expect(listener).toHaveBeenCalledWith(event);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('calls all subscribed listeners', () => {
-    const emitter = new EventEmitter();
+  it('delivers events to multiple subscribers', () => {
+    const bus = createEventBus();
     const l1 = vi.fn();
     const l2 = vi.fn();
-    emitter.subscribe(l1);
-    emitter.subscribe(l2);
-    emitter.emit({ type: 'connectionStatus', status: 'idle' });
+    bus.events$.subscribe(l1);
+    bus.events$.subscribe(l2);
+    bus.subject.next({ type: 'connectionStatus', status: 'idle' });
     expect(l1).toHaveBeenCalledTimes(1);
     expect(l2).toHaveBeenCalledTimes(1);
   });
 
-  it('unsubscribe stops listener from receiving events', () => {
-    const emitter = new EventEmitter();
+  it('unsubscribe stops delivery to that subscriber', () => {
+    const bus = createEventBus();
     const listener = vi.fn();
-    const unsubscribe = emitter.subscribe(listener);
-    unsubscribe();
-    emitter.emit({ type: 'connectionStatus', status: 'ready' });
+    const sub = bus.events$.subscribe(listener);
+    sub.unsubscribe();
+    bus.subject.next({ type: 'connectionStatus', status: 'ready' });
     expect(listener).not.toHaveBeenCalled();
   });
 
-  it('clear removes all listeners', () => {
-    const emitter = new EventEmitter();
+  it('subject stays open across multiple subscribe/unsubscribe cycles', () => {
+    const bus = createEventBus();
     const l1 = vi.fn();
+    const sub1 = bus.events$.subscribe(l1);
+    sub1.unsubscribe();
+    // Resubscribe — should still work (subject not completed)
     const l2 = vi.fn();
-    emitter.subscribe(l1);
-    emitter.subscribe(l2);
-    emitter.clear();
-    emitter.emit({ type: 'connectionStatus', status: 'ready' });
+    bus.events$.subscribe(l2);
+    bus.subject.next({ type: 'connectionStatus', status: 'ready' });
     expect(l1).not.toHaveBeenCalled();
-    expect(l2).not.toHaveBeenCalled();
+    expect(l2).toHaveBeenCalledTimes(1);
   });
 
-  it('only removes the unsubscribed listener, not others', () => {
-    const emitter = new EventEmitter();
+  it('only unsubscribed subscriber stops, not others', () => {
+    const bus = createEventBus();
     const l1 = vi.fn();
     const l2 = vi.fn();
-    const unsub1 = emitter.subscribe(l1);
-    emitter.subscribe(l2);
-    unsub1();
-    emitter.emit({ type: 'connectionStatus', status: 'ready' });
+    const sub1 = bus.events$.subscribe(l1);
+    bus.events$.subscribe(l2);
+    sub1.unsubscribe();
+    bus.subject.next({ type: 'connectionStatus', status: 'ready' });
     expect(l1).not.toHaveBeenCalled();
     expect(l2).toHaveBeenCalledTimes(1);
   });

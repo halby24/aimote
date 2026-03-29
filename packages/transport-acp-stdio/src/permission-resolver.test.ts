@@ -3,10 +3,10 @@ import { PermissionResolver } from './permission-resolver.js';
 import type { AgentEvent } from '@acme/shared-types';
 import type { RequestPermissionRequest } from '@agentclientprotocol/sdk/dist/acp.js';
 
-function createMockEmitter() {
+function createMockSink() {
   const events: AgentEvent[] = [];
   return {
-    emit(event: AgentEvent) { events.push(event); },
+    next(event: AgentEvent) { events.push(event); },
     events,
   };
 }
@@ -30,20 +30,20 @@ function makePermRequest(overrides?: Partial<RequestPermissionRequest>): Request
 describe('PermissionResolver', () => {
   it('emits permissionRequested on request', () => {
     const resolver = new PermissionResolver();
-    const emitter = createMockEmitter();
-    void resolver.request(makePermRequest(), emitter);
+    const sink = createMockSink();
+    void resolver.request(makePermRequest(), sink);
 
-    expect(emitter.events).toHaveLength(1);
-    expect(emitter.events[0]!.type).toBe('permissionRequested');
+    expect(sink.events).toHaveLength(1);
+    expect(sink.events[0]!.type).toBe('permissionRequested');
   });
 
   it('promise resolves when resolve() is called', async () => {
     const resolver = new PermissionResolver();
-    const emitter = createMockEmitter();
-    const promise = resolver.request(makePermRequest(), emitter);
+    const sink = createMockSink();
+    const promise = resolver.request(makePermRequest(), sink);
 
     // Extract requestId from emitted event
-    const event = emitter.events[0]!;
+    const event = sink.events[0]!;
     if (event.type !== 'permissionRequested') throw new Error('unexpected');
     const requestId = event.requestId;
 
@@ -60,9 +60,9 @@ describe('PermissionResolver', () => {
 
   it('cancelAll resolves all pending as cancelled', async () => {
     const resolver = new PermissionResolver();
-    const emitter = createMockEmitter();
-    const p1 = resolver.request(makePermRequest(), emitter);
-    const p2 = resolver.request(makePermRequest(), emitter);
+    const sink = createMockSink();
+    const p1 = resolver.request(makePermRequest(), sink);
+    const p2 = resolver.request(makePermRequest(), sink);
 
     expect(resolver.pendingCount).toBe(2);
     resolver.cancelAll();
@@ -76,10 +76,10 @@ describe('PermissionResolver', () => {
 
   it('emitted event contains correct payload structure', () => {
     const resolver = new PermissionResolver();
-    const emitter = createMockEmitter();
-    void resolver.request(makePermRequest(), emitter);
+    const sink = createMockSink();
+    void resolver.request(makePermRequest(), sink);
 
-    const event = emitter.events[0]!;
+    const event = sink.events[0]!;
     if (event.type !== 'permissionRequested') throw new Error('unexpected');
     expect(event.payload.options).toHaveLength(2);
     expect(event.payload.options[0]).toEqual({

@@ -6,22 +6,22 @@ import type { AgentEvent } from '@acme/shared-types';
 import { AcpClientHandler } from './acp-client-handler.js';
 import { PermissionResolver } from './permission-resolver.js';
 
-function createMockEmitter() {
+function createMockSink() {
   const events: AgentEvent[] = [];
   return {
-    emit(event: AgentEvent) { events.push(event); },
+    next(event: AgentEvent) { events.push(event); },
     events,
   };
 }
 
 describe('AcpClientHandler', () => {
-  let emitter: ReturnType<typeof createMockEmitter>;
+  let sink: ReturnType<typeof createMockSink>;
   let handler: AcpClientHandler;
   let tmpDir: string;
 
   beforeEach(async () => {
-    emitter = createMockEmitter();
-    handler = new AcpClientHandler(emitter, new PermissionResolver());
+    sink = createMockSink();
+    handler = new AcpClientHandler(sink, new PermissionResolver());
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'acp-test-'));
   });
 
@@ -40,8 +40,8 @@ describe('AcpClientHandler', () => {
           messageId: 'msg-1',
         } as never,
       });
-      expect(emitter.events).toHaveLength(1);
-      expect(emitter.events[0]!.type).toBe('messageDelta');
+      expect(sink.events).toHaveLength(1);
+      expect(sink.events[0]!.type).toBe('messageDelta');
     });
   });
 
@@ -53,8 +53,8 @@ describe('AcpClientHandler', () => {
         options: [{ optionId: 'opt-1', name: 'Allow', kind: 'allow_once' }],
       } as never);
 
-      expect(emitter.events).toHaveLength(1);
-      const event = emitter.events[0]!;
+      expect(sink.events).toHaveLength(1);
+      const event = sink.events[0]!;
       if (event.type !== 'permissionRequested') throw new Error('unexpected');
 
       handler.permissionResolver.resolve(event.requestId, 'opt-1');

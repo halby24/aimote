@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@acme/app-core": "workspace:*",
-    "@acme/shared-types": "workspace:*"
+    "@acme/shared-types": "workspace:*",
+    "rxjs": "7.8"
   },
   "peerDependencies": {
     "react": "^18.0.0"

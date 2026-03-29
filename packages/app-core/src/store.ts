@@ -1,3 +1,4 @@
+import { BehaviorSubject, type Observable, skip } from 'rxjs';
 import type {
   ChatMessage,
   SessionId,
@@ -47,22 +48,18 @@ function createStore(): ChatStore {
 }
 
 export class ChatStoreManager {
-  private store: ChatStore = createStore();
-  private readonly listeners = new Set<StoreListener>();
+  private readonly store$ = new BehaviorSubject<ChatStore>(createStore());
+
+  readonly state$: Observable<ChatStore> = this.store$.asObservable();
 
   getStore(): ChatStore {
-    return this.store;
+    return this.store$.getValue();
   }
 
   subscribe(listener: StoreListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  private notify(): void {
-    for (const listener of this.listeners) {
-      listener(this.store);
-    }
+    // skip(1) to match legacy behavior: only emit on future changes, not current value
+    const sub = this.state$.pipe(skip(1)).subscribe(listener);
+    return () => sub.unsubscribe();
   }
 
   createSession(sessionId: string): void {
@@ -81,10 +78,9 @@ export class ChatStoreManager {
       pendingPermission: null,
       isTurnActive: false,
     };
-    const newSessions = new Map(this.store.sessions);
+    const newSessions = new Map(this.getStore().sessions);
     newSessions.set(id, session);
-    this.store = { ...this.store, sessions: newSessions, activeSessionId: id };
-    this.notify();
+    this.store$.next({ ...this.getStore(), sessions: newSessions, activeSessionId: id });
   }
 
   addUserMessage(sessionId: string, text: string): MessageId {
@@ -163,11 +159,10 @@ export class ChatStoreManager {
   }
 
   setActiveSession(sessionId: string | null): void {
-    this.store = {
-      ...this.store,
+    this.store$.next({
+      ...this.getStore(),
       activeSessionId: sessionId ? makeSessionId(sessionId) : null,
-    };
-    this.notify();
+    });
   }
 
   addToolCall(sessionId: string, toolCall: ToolCallInfo): void {
@@ -262,12 +257,12 @@ export class ChatStoreManager {
   }
 
   private updateSession(id: SessionId, updater: (s: ChatSession) => ChatSession): void {
-    const existing = this.store.sessions.get(id);
+    const store = this.getStore();
+    const existing = store.sessions.get(id);
     if (!existing) return;
-    const newSessions = new Map(this.store.sessions);
+    const newSessions = new Map(store.sessions);
     newSessions.set(id, updater(existing));
-    this.store = { ...this.store, sessions: newSessions };
-    this.notify();
+    this.store$.next({ ...store, sessions: newSessions });
   }
 
   private updateMessage(

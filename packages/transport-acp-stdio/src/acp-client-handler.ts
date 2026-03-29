@@ -7,7 +7,7 @@ import type { AgentEvent } from '@acme/shared-types';
 import { mapSessionUpdate } from './session-update-mapper.js';
 import { PermissionResolver } from './permission-resolver.js';
 
-type Emitter = { emit(event: AgentEvent): void };
+type EventSink = { next(event: AgentEvent): void };
 
 interface TerminalEntry {
   process: ChildProcess;
@@ -22,19 +22,19 @@ export class AcpClientHandler implements Client {
   private readonly terminals = new Map<string, TerminalEntry>();
 
   constructor(
-    private readonly emitter: Emitter,
+    private readonly sink: EventSink,
     readonly permissionResolver: PermissionResolver,
   ) {}
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
     const events = mapSessionUpdate(params.sessionId, params.update);
     for (const event of events) {
-      this.emitter.emit(event);
+      this.sink.next(event);
     }
   }
 
   async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
-    return this.permissionResolver.request(params, this.emitter);
+    return this.permissionResolver.request(params, this.sink);
   }
 
   async readTextFile(params: { path: string; sessionId: string }): Promise<{ content: string }> {

@@ -1,3 +1,4 @@
+import type { Observable } from 'rxjs';
 import type { AgentEvent, AgentsFile, ConfigValidationResult } from '@acme/shared-types';
 
 export interface SessionListItem {
@@ -8,13 +9,13 @@ export interface SessionListItem {
 }
 
 export interface AgentTransport {
+  readonly events$: Observable<AgentEvent>;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   startSession(input?: { workspace?: string }): Promise<{ sessionId: string }>;
   sendUserMessage(sessionId: string, text: string): Promise<void>;
   cancel(sessionId: string): Promise<void>;
   approve(requestId: string, optionId: string): Promise<void>;
-  subscribe(listener: (event: AgentEvent) => void): () => void;
 
   // Optional — capability dependent
   validateConfig?(): Promise<ConfigValidationResult>;

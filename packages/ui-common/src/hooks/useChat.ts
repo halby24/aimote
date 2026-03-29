@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Observable } from 'rxjs';
 import type { ChatController } from '@acme/app-core';
 import type { ChatScreenViewModel } from '../view-models.js';
 import { buildChatScreenViewModel } from '../presenter.js';
@@ -15,31 +16,36 @@ export interface UseChatResult {
   approve: (requestId: string, optionId: string) => Promise<void>;
 }
 
+function useObservableState<T>(observable$: Observable<T>, initial: T): T {
+  const [state, setState] = useState(initial);
+  useEffect(() => {
+    const sub = observable$.subscribe(setState);
+    return () => sub.unsubscribe();
+  }, [observable$]);
+  return state;
+}
+
 export function useChat({ controller }: UseChatOptions): UseChatResult {
-  const [store, setStore] = useState(() => controller.storeManager.getStore());
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
-    () => controller.getConnectionStatus(),
+  const store = useObservableState(
+    controller.storeManager.state$,
+    controller.storeManager.getStore(),
+  );
+  const connectionStatus = useObservableState<ConnectionStatus>(
+    controller.connectionStatus$,
+    controller.getConnectionStatus(),
+  );
+  const configValidation = useObservableState<ConfigValidationResult | null>(
+    controller.configValidation$,
+    controller.getConfigValidation(),
+  );
+  const connectError = useObservableState<string | null>(
+    controller.connectError$,
+    controller.getConnectError(),
   );
   const [inputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [configValidation, setConfigValidation] = useState<ConfigValidationResult | null>(null);
-  const [connectError, setConnectError] = useState<string | null>(null);
   const controllerRef = useRef(controller);
   controllerRef.current = controller;
-
-  useEffect(() => {
-    const unsub = controller.subscribe((s) => setStore(s));
-    // Poll connection status, config validation, and connect error
-    const timer = setInterval(() => {
-      setConnectionStatus(controllerRef.current.getConnectionStatus());
-      setConfigValidation(controllerRef.current.getConfigValidation());
-      setConnectError(controllerRef.current.getConnectError());
-    }, 300);
-    return () => {
-      unsub();
-      clearInterval(timer);
-    };
-  }, [controller]);
 
   const viewModel = buildChatScreenViewModel({
     store,

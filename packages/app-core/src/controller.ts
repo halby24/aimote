@@ -1,5 +1,6 @@
+import { BehaviorSubject, type Subscription } from 'rxjs';
 import type { AgentTransport } from '@acme/transport';
-import type { ConnectionStatus, ConfigValidationResult, AgentsFile } from '@acme/shared-types';
+import type { AgentEvent, ConnectionStatus, ConfigValidationResult, AgentsFile } from '@acme/shared-types';
 import { makeSessionId, makeMessageId } from '@acme/shared-types';
 import { ChatStoreManager } from './store.js';
 
@@ -10,10 +11,11 @@ export interface ChatControllerOptions {
 export class ChatController {
   private readonly transport: AgentTransport;
   readonly storeManager: ChatStoreManager;
-  private connectionStatus: ConnectionStatus = 'idle';
-  private configValidation: ConfigValidationResult | null = null;
-  private connectError: string | null = null;
-  private unsubscribe: (() => void) | null = null;
+  readonly connectionStatus$ = new BehaviorSubject<ConnectionStatus>('idle');
+  readonly configValidation$ = new BehaviorSubject<ConfigValidationResult | null>(null);
+  readonly connectError$ = new BehaviorSubject<string | null>(null);
+  private subscription: Subscription | null = null;
+  private connectGeneration = 0;
   private activeSessionId: string | null = null;
   private streamingMessageId: string | null = null;
 
@@ -23,120 +25,54 @@ export class ChatController {
   }
 
   getConnectionStatus(): ConnectionStatus {
-    return this.connectionStatus;
+    return this.connectionStatus$.getValue();
   }
 
   getConfigValidation(): ConfigValidationResult | null {
-    return this.configValidation;
+    return this.configValidation$.getValue();
   }
 
   getConnectError(): string | null {
-    return this.connectError;
+    return this.connectError$.getValue();
   }
 
   async connect(): Promise<void> {
     // Clean up any leaked subscription from a previous connect() that was
-    // interrupted by disconnect() before it could set this.unsubscribe
+    // interrupted by disconnect() before it could complete
     // (happens with React StrictMode double-mount).
-    this.unsubscribe?.();
-    this.unsubscribe = null;
+    this.subscription?.unsubscribe();
+    this.subscription = null;
+
+    const gen = ++this.connectGeneration;
 
     const validation = await this.runValidateConfig();
-    this.configValidation = validation;
+    if (gen !== this.connectGeneration) return; // superseded
+    this.configValidation$.next(validation);
     if (!validation.valid) {
-      this.connectionStatus = 'error';
+      this.connectionStatus$.next('error');
       return;
     }
 
-    this.unsubscribe = this.transport.subscribe((event) => {
-      switch (event.type) {
-        case 'connectionStatus':
-          this.connectionStatus = event.status;
-          break;
-        case 'sessionStarted':
-          if (this.activeSessionId !== event.sessionId) {
-            this.storeManager.createSession(event.sessionId);
-            this.activeSessionId = event.sessionId;
-          }
-          break;
-        case 'messageDelta': {
-          const { sessionId, delta } = event;
-          if (this.streamingMessageId === null) {
-            // Generate a unique message ID locally — the backend currently
-            // hardcodes "default" for every chunk, which causes ID collisions
-            // across turns and duplicated content.
-            const localId = makeMessageId(`assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-            this.storeManager.addAssistantMessage(sessionId, localId);
-            this.streamingMessageId = localId;
-          }
-          this.storeManager.appendMessageDelta(sessionId, this.streamingMessageId, delta);
-          break;
-        }
-        case 'messageCompleted': {
-          const { sessionId } = event;
-          if (this.streamingMessageId) {
-            this.storeManager.completeMessage(sessionId, this.streamingMessageId);
-            this.streamingMessageId = null;
-          }
-          break;
-        }
-        case 'toolCallStarted':
-          this.storeManager.addToolCall(event.sessionId, event.toolCall);
-          break;
-        case 'toolCallUpdated':
-          this.storeManager.updateToolCall(event.sessionId, event.toolCallId, event.update);
-          break;
-        case 'plan':
-          this.storeManager.setPlan(event.sessionId, event.entries);
-          break;
-        case 'thoughtDelta':
-          this.storeManager.appendThought(event.sessionId, event.delta);
-          break;
-        case 'modeChanged':
-          this.storeManager.setMode(event.sessionId, event.modeId);
-          break;
-        case 'commandsChanged':
-          this.storeManager.setCommands(event.sessionId, event.commands);
-          break;
-        case 'usageUpdate':
-          this.storeManager.setUsage(event.sessionId, event.usage);
-          break;
-        case 'sessionInfoUpdate':
-          if (event.title !== undefined && event.title !== null) {
-            this.storeManager.setSessionTitle(event.sessionId, event.title);
-          }
-          break;
-        case 'permissionRequested':
-          this.storeManager.setPermission(event.sessionId, event.requestId, event.payload);
-          break;
-        case 'turnCompleted':
-          if (this.streamingMessageId && this.activeSessionId) {
-            this.storeManager.completeMessage(event.sessionId, this.streamingMessageId);
-          }
-          this.storeManager.setTurnActive(event.sessionId, false);
-          this.streamingMessageId = null;
-          break;
-        case 'error':
-          if (this.activeSessionId) {
-            this.storeManager.addErrorMessage(this.activeSessionId, event.code, event.message);
-          }
-          console.error(`[transport error] ${event.code}: ${event.message}`);
-          break;
-        default:
-          break;
-      }
+    this.subscription = this.transport.events$.subscribe((event) => {
+      this.handleEvent(event);
     });
+
     try {
       await this.transport.connect();
     } catch (err) {
-      this.connectError = err instanceof Error ? err.message : String(err);
-      this.connectionStatus = 'error';
+      // Only set error if this connect attempt is still current.
+      // A stale attempt (superseded by disconnect + reconnect) is silently ignored.
+      if (gen === this.connectGeneration) {
+        this.connectError$.next(err instanceof Error ? err.message : String(err));
+        this.connectionStatus$.next('error');
+      }
     }
   }
 
   async disconnect(): Promise<void> {
-    this.unsubscribe?.();
-    this.unsubscribe = null;
+    this.connectGeneration++; // invalidate any in-flight connect
+    this.subscription?.unsubscribe();
+    this.subscription = null;
     this.activeSessionId = null;
     this.streamingMessageId = null;
     await this.transport.disconnect();
@@ -201,6 +137,82 @@ export class ChatController {
 
   subscribe(listener: (store: import('./store.js').ChatStore) => void): () => void {
     return this.storeManager.subscribe(listener);
+  }
+
+  private handleEvent(event: AgentEvent): void {
+    switch (event.type) {
+      case 'connectionStatus':
+        this.connectionStatus$.next(event.status);
+        break;
+      case 'sessionStarted':
+        if (this.activeSessionId !== event.sessionId) {
+          this.storeManager.createSession(event.sessionId);
+          this.activeSessionId = event.sessionId;
+        }
+        break;
+      case 'messageDelta': {
+        const { sessionId, delta } = event;
+        if (this.streamingMessageId === null) {
+          const localId = makeMessageId(`assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+          this.storeManager.addAssistantMessage(sessionId, localId);
+          this.streamingMessageId = localId;
+        }
+        this.storeManager.appendMessageDelta(sessionId, this.streamingMessageId, delta);
+        break;
+      }
+      case 'messageCompleted': {
+        const { sessionId } = event;
+        if (this.streamingMessageId) {
+          this.storeManager.completeMessage(sessionId, this.streamingMessageId);
+          this.streamingMessageId = null;
+        }
+        break;
+      }
+      case 'toolCallStarted':
+        this.storeManager.addToolCall(event.sessionId, event.toolCall);
+        break;
+      case 'toolCallUpdated':
+        this.storeManager.updateToolCall(event.sessionId, event.toolCallId, event.update);
+        break;
+      case 'plan':
+        this.storeManager.setPlan(event.sessionId, event.entries);
+        break;
+      case 'thoughtDelta':
+        this.storeManager.appendThought(event.sessionId, event.delta);
+        break;
+      case 'modeChanged':
+        this.storeManager.setMode(event.sessionId, event.modeId);
+        break;
+      case 'commandsChanged':
+        this.storeManager.setCommands(event.sessionId, event.commands);
+        break;
+      case 'usageUpdate':
+        this.storeManager.setUsage(event.sessionId, event.usage);
+        break;
+      case 'sessionInfoUpdate':
+        if (event.title !== undefined && event.title !== null) {
+          this.storeManager.setSessionTitle(event.sessionId, event.title);
+        }
+        break;
+      case 'permissionRequested':
+        this.storeManager.setPermission(event.sessionId, event.requestId, event.payload);
+        break;
+      case 'turnCompleted':
+        if (this.streamingMessageId && this.activeSessionId) {
+          this.storeManager.completeMessage(event.sessionId, this.streamingMessageId);
+        }
+        this.storeManager.setTurnActive(event.sessionId, false);
+        this.streamingMessageId = null;
+        break;
+      case 'error':
+        if (this.activeSessionId) {
+          this.storeManager.addErrorMessage(this.activeSessionId, event.code, event.message);
+        }
+        console.error(`[transport error] ${event.code}: ${event.message}`);
+        break;
+      default:
+        break;
+    }
   }
 
   private async runValidateConfig(): Promise<ConfigValidationResult> {

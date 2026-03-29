@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { BehaviorSubject } from 'rxjs';
 import type { ChatController } from '@acme/app-core';
 import type { ChatStore } from '@acme/app-core';
 import type { ConnectionStatus, SessionId } from '@acme/shared-types';
@@ -23,32 +24,41 @@ export function createMockController(
   options: { connectionStatus?: ConnectionStatus } = {},
 ): MockChatController {
   const { connectionStatus = 'ready' } = options;
-  const listeners = new Set<(store: ChatStore) => void>();
 
   const defaultStore: ChatStore = {
     sessions: new Map(),
     activeSessionId: null,
   };
 
+  const store$ = new BehaviorSubject<ChatStore>(defaultStore);
+
   const storeManager = {
-    getStore: vi.fn(() => defaultStore),
+    getStore: vi.fn(() => store$.getValue()),
+    state$: store$.asObservable(),
     subscribe: vi.fn((listener: (store: ChatStore) => void) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+      const sub = store$.subscribe(listener);
+      return () => sub.unsubscribe();
     }),
   };
 
+  const connectionStatus$ = new BehaviorSubject<ConnectionStatus>(connectionStatus);
+  const configValidation$ = new BehaviorSubject(null);
+  const connectError$ = new BehaviorSubject<string | null>(null);
+
   return {
     storeManager,
+    connectionStatus$,
+    configValidation$,
+    connectError$,
     connect: vi.fn(async () => {}),
     disconnect: vi.fn(async () => {}),
     startSession: vi.fn(async () => 'session-1' as SessionId),
     sendMessage: vi.fn(async () => {}),
     approve: vi.fn(async () => {}),
     cancel: vi.fn(async () => {}),
-    getConnectionStatus: vi.fn(() => connectionStatus),
-    getConfigValidation: vi.fn(() => null),
-    getConnectError: vi.fn(() => null),
+    getConnectionStatus: vi.fn(() => connectionStatus$.getValue()),
+    getConfigValidation: vi.fn(() => configValidation$.getValue()),
+    getConnectError: vi.fn(() => connectError$.getValue()),
     getActiveSession: vi.fn(() => null),
     getAgentsConfig: vi.fn(async () => ({
       defaultAgent: 'claude',
@@ -56,8 +66,8 @@ export function createMockController(
     })),
     saveAgentsConfig: vi.fn(async () => {}),
     subscribe: vi.fn((listener: (store: ChatStore) => void) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+      const sub = store$.subscribe(listener);
+      return () => sub.unsubscribe();
     }),
   } as unknown as MockChatController;
 }

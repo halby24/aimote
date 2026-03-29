@@ -19,7 +19,8 @@
   "dependencies": {
     "@acme/shared-types": "workspace:*",
     "@acme/transport": "workspace:*",
-    "@agentclientprotocol/sdk": "^0.16.1"
+    "@agentclientprotocol/sdk": "^0.16.1",
+    "rxjs": "7.8"
   },
   "peerDependencies": {
     "zod": "^3.25.0 || ^4.0.0"

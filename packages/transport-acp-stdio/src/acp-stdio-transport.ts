@@ -1,5 +1,6 @@
+import type { Observable } from 'rxjs';
 import type { AgentTransport, SessionListItem } from '@acme/transport';
-import { EventEmitter } from '@acme/transport';
+import { createEventBus } from '@acme/transport';
 import { makeSessionId } from '@acme/shared-types';
 import type { AgentEvent } from '@acme/shared-types';
 import type { Stream } from '@agentclientprotocol/sdk/dist/stream.js';
@@ -19,7 +20,8 @@ export interface AcpStdioTransportOptions {
 }
 
 export class AcpStdioTransport implements AgentTransport {
-  private readonly emitter = new EventEmitter();
+  private readonly bus = createEventBus();
+  readonly events$: Observable<AgentEvent> = this.bus.events$;
   private readonly permissionResolver = new PermissionResolver();
   private connection: ClientSideConnection | null = null;
   private spawnResult: SpawnResult | null = null;
@@ -32,9 +34,9 @@ export class AcpStdioTransport implements AgentTransport {
 
   /** @internal For testing — connect using a pre-built stream instead of spawning a process. */
   async connectWithStream(stream: Stream): Promise<void> {
-    this.emitter.emit({ type: 'connectionStatus', status: 'connecting' });
+    this.bus.subject.next({ type: 'connectionStatus', status: 'connecting' });
 
-    const clientHandler = new AcpClientHandler(this.emitter, this.permissionResolver);
+    const clientHandler = new AcpClientHandler(this.bus.subject, this.permissionResolver);
     this.connection = new ClientSideConnection(
       () => clientHandler,
       stream,
@@ -51,14 +53,14 @@ export class AcpStdioTransport implements AgentTransport {
       });
 
       this.agentCapabilities = initResponse.agentCapabilities ?? null;
-      this.emitter.emit({ type: 'connectionStatus', status: 'ready' });
+      this.bus.subject.next({ type: 'connectionStatus', status: 'ready' });
     } catch (err) {
-      this.emitter.emit({
+      this.bus.subject.next({
         type: 'error',
         code: 'INIT_ERROR',
         message: err instanceof Error ? err.message : String(err),
       });
-      this.emitter.emit({ type: 'connectionStatus', status: 'error' });
+      this.bus.subject.next({ type: 'connectionStatus', status: 'error' });
       throw err;
     }
   }
@@ -66,7 +68,7 @@ export class AcpStdioTransport implements AgentTransport {
   async connect(): Promise<void> {
     const config = this.options.registry.get(this.options.agentName);
     if (!config) {
-      this.emitter.emit({
+      this.bus.subject.next({
         type: 'error',
         code: 'AGENT_NOT_FOUND',
         message: `Agent "${this.options.agentName}" not found in registry`,
@@ -74,21 +76,21 @@ export class AcpStdioTransport implements AgentTransport {
       throw new Error(`Agent "${this.options.agentName}" not found in registry`);
     }
 
-    this.emitter.emit({ type: 'connectionStatus', status: 'connecting' });
+    this.bus.subject.next({ type: 'connectionStatus', status: 'connecting' });
 
     try {
       this.spawnResult = spawnAgent(config, this.options.processManagerOptions);
     } catch (err) {
-      this.emitter.emit({
+      this.bus.subject.next({
         type: 'error',
         code: 'SPAWN_ERROR',
         message: err instanceof Error ? err.message : String(err),
       });
-      this.emitter.emit({ type: 'connectionStatus', status: 'error' });
+      this.bus.subject.next({ type: 'connectionStatus', status: 'error' });
       throw err;
     }
 
-    const clientHandler = new AcpClientHandler(this.emitter, this.permissionResolver);
+    const clientHandler = new AcpClientHandler(this.bus.subject, this.permissionResolver);
 
     this.connection = new ClientSideConnection(
       () => clientHandler,
@@ -98,15 +100,15 @@ export class AcpStdioTransport implements AgentTransport {
     // Monitor process exit
     void this.spawnResult.exitPromise.then(
       () => {
-        this.emitter.emit({ type: 'connectionStatus', status: 'disconnected' });
+        this.bus.subject.next({ type: 'connectionStatus', status: 'disconnected' });
       },
       (err) => {
-        this.emitter.emit({
+        this.bus.subject.next({
           type: 'error',
           code: 'PROCESS_CRASH',
           message: err instanceof Error ? err.message : String(err),
         });
-        this.emitter.emit({ type: 'connectionStatus', status: 'disconnected' });
+        this.bus.subject.next({ type: 'connectionStatus', status: 'disconnected' });
       },
     );
 
@@ -121,14 +123,14 @@ export class AcpStdioTransport implements AgentTransport {
       });
 
       this.agentCapabilities = initResponse.agentCapabilities ?? null;
-      this.emitter.emit({ type: 'connectionStatus', status: 'ready' });
+      this.bus.subject.next({ type: 'connectionStatus', status: 'ready' });
     } catch (err) {
-      this.emitter.emit({
+      this.bus.subject.next({
         type: 'error',
         code: 'INIT_ERROR',
         message: err instanceof Error ? err.message : String(err),
       });
-      this.emitter.emit({ type: 'connectionStatus', status: 'error' });
+      this.bus.subject.next({ type: 'connectionStatus', status: 'error' });
       throw err;
     }
   }
@@ -141,7 +143,7 @@ export class AcpStdioTransport implements AgentTransport {
     }
     this.connection = null;
     this.agentCapabilities = null;
-    this.emitter.emit({ type: 'connectionStatus', status: 'disconnected' });
+    this.bus.subject.next({ type: 'connectionStatus', status: 'disconnected' });
   }
 
   async startSession(input?: { workspace?: string }): Promise<{ sessionId: string }> {
@@ -153,7 +155,7 @@ export class AcpStdioTransport implements AgentTransport {
     });
 
     const sessionId = response.sessionId;
-    this.emitter.emit({ type: 'sessionStarted', sessionId: makeSessionId(sessionId) });
+    this.bus.subject.next({ type: 'sessionStarted', sessionId: makeSessionId(sessionId) });
     return { sessionId };
   }
 
@@ -165,7 +167,7 @@ export class AcpStdioTransport implements AgentTransport {
       prompt: [{ type: 'text', text }],
     });
 
-    this.emitter.emit({
+    this.bus.subject.next({
       type: 'turnCompleted',
       sessionId: makeSessionId(sessionId),
       stopReason: response.stopReason,
@@ -179,10 +181,6 @@ export class AcpStdioTransport implements AgentTransport {
 
   async approve(requestId: string, optionId: string): Promise<void> {
     this.permissionResolver.resolve(requestId, optionId);
-  }
-
-  subscribe(listener: (event: AgentEvent) => void): () => void {
-    return this.emitter.subscribe(listener);
   }
 
   async listSessions(): Promise<{ sessions: SessionListItem[] }> {
